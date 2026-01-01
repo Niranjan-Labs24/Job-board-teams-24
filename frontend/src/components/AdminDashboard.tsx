@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { LogOut, Briefcase, Users, FileText, Eye, X, LayoutGrid, Table, Star } from 'lucide-react';
 import { KanbanBoard } from './KanbanBoard';
 import { CandidateRating } from './CandidateRating';
 import { CandidateNotes, Note } from './CandidateNotes';
+import { SearchFilters, FilterState, SavedFilter } from './SearchFilters';
 
 interface Rating {
   id: string;
@@ -30,6 +31,17 @@ interface Application {
   ratings: Rating[];
   notes: Note[];
 }
+
+const PIPELINE_STAGES = [
+  { id: 'new', label: 'New' },
+  { id: 'screening', label: 'Screening' },
+  { id: 'interview_scheduled', label: 'Interview Scheduled' },
+  { id: 'interview_complete', label: 'Interview Complete' },
+  { id: 'offer_pending', label: 'Offer Pending' },
+  { id: 'hired', label: 'Hired' },
+  { id: 'rejected', label: 'Rejected' },
+  { id: 'on_hold', label: 'On Hold' },
+];
 
 // Mock applications data with proper Rating and Note structures
 const mockApplications: Application[] = [
@@ -348,8 +360,137 @@ interface AdminDashboardProps {
 export function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const [applications, setApplications] = useState<Application[]>(mockApplications);
   const [selectedApplication, setSelectedApplication] = useState<Application | null>(null);
-  const [activeTab, setActiveTab] = useState<'all' | 'new' | 'screening'>('all');
   const [viewMode, setViewMode] = useState<'table' | 'kanban'>('kanban');
+  const [filters, setFilters] = useState<FilterState>({
+    searchQuery: '',
+    positions: [],
+    stages: [],
+    ratingMin: 0,
+    ratingMax: 5,
+    dateFrom: '',
+    dateTo: '',
+    hasResume: null,
+    hasNotes: null,
+    hasLinkedIn: null,
+    hasPortfolio: null,
+  });
+  const [savedFilters, setSavedFilters] = useState<SavedFilter[]>(() => {
+    const saved = localStorage.getItem('savedFilters');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  // Get unique positions from applications
+  const positions = useMemo(() => {
+    return [...new Set(applications.map(app => app.jobTitle))];
+  }, [applications]);
+
+  // Apply filters to applications
+  const filteredApplications = useMemo(() => {
+    return applications.filter(app => {
+      // Search query filter (name, email, phone, position)
+      if (filters.searchQuery) {
+        const query = filters.searchQuery.toLowerCase();
+        const matchesSearch = 
+          app.applicantName.toLowerCase().includes(query) ||
+          app.email.toLowerCase().includes(query) ||
+          app.phone.toLowerCase().includes(query) ||
+          app.jobTitle.toLowerCase().includes(query);
+        if (!matchesSearch) return false;
+      }
+
+      // Position filter
+      if (filters.positions.length > 0 && !filters.positions.includes(app.jobTitle)) {
+        return false;
+      }
+
+      // Stage filter
+      if (filters.stages.length > 0 && !filters.stages.includes(app.status)) {
+        return false;
+      }
+
+      // Rating filter
+      const appRating = app.rating || 0;
+      if (appRating < filters.ratingMin || appRating > filters.ratingMax) {
+        return false;
+      }
+
+      // Date range filter
+      if (filters.dateFrom) {
+        const appDate = new Date(app.appliedDate);
+        const fromDate = new Date(filters.dateFrom);
+        if (appDate < fromDate) return false;
+      }
+      if (filters.dateTo) {
+        const appDate = new Date(app.appliedDate);
+        const toDate = new Date(filters.dateTo);
+        if (appDate > toDate) return false;
+      }
+
+      // Has Resume filter
+      if (filters.hasResume !== null) {
+        const hasResume = !!app.resume;
+        if (filters.hasResume !== hasResume) return false;
+      }
+
+      // Has Notes filter
+      if (filters.hasNotes !== null) {
+        const hasNotes = app.notes.length > 0;
+        if (filters.hasNotes !== hasNotes) return false;
+      }
+
+      // Has LinkedIn filter
+      if (filters.hasLinkedIn !== null) {
+        const hasLinkedIn = !!app.linkedIn;
+        if (filters.hasLinkedIn !== hasLinkedIn) return false;
+      }
+
+      // Has Portfolio filter
+      if (filters.hasPortfolio !== null) {
+        const hasPortfolio = !!app.portfolio;
+        if (filters.hasPortfolio !== hasPortfolio) return false;
+      }
+
+      return true;
+    });
+  }, [applications, filters]);
+
+  const handleFilterChange = useCallback((newFilters: FilterState) => {
+    setFilters(newFilters);
+  }, []);
+
+  const handleSaveFilter = useCallback((name: string, filterState: FilterState) => {
+    const newFilter: SavedFilter = {
+      id: `filter-${Date.now()}`,
+      name,
+      filters: filterState,
+      createdAt: new Date().toISOString(),
+      isShared: false,
+    };
+    const updated = [...savedFilters, newFilter];
+    setSavedFilters(updated);
+    localStorage.setItem('savedFilters', JSON.stringify(updated));
+  }, [savedFilters]);
+
+  const handleDeleteFilter = useCallback((id: string) => {
+    const updated = savedFilters.filter(f => f.id !== id);
+    setSavedFilters(updated);
+    localStorage.setItem('savedFilters', JSON.stringify(updated));
+  }, [savedFilters]);
+
+  const handleShareFilter = useCallback((id: string) => {
+    const filter = savedFilters.find(f => f.id === id);
+    if (filter) {
+      // Create a shareable link (in a real app, this would be a proper URL)
+      const filterData = encodeURIComponent(JSON.stringify(filter.filters));
+      const shareUrl = `${window.location.origin}?filter=${filterData}`;
+      navigator.clipboard.writeText(shareUrl);
+      alert('Filter link copied to clipboard!');
+    }
+  }, [savedFilters]);
+
+  const handleLoadFilter = useCallback((filter: SavedFilter) => {
+    setFilters(filter.filters);
+  }, []);
 
   const handleStatusChange = (appId: string, newStatus: Application['status']) => {
     setApplications((prev) =>
@@ -453,15 +594,10 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
     );
   };
 
-  const filteredApplications = applications.filter((app) => {
-    if (activeTab === 'all') return true;
-    return app.status === activeTab;
-  });
-
   const stats = {
-    total: applications.length,
-    new: applications.filter((a) => a.status === 'new').length,
-    screening: applications.filter((a) => a.status === 'screening').length
+    total: filteredApplications.length,
+    new: filteredApplications.filter((a) => a.status === 'new').length,
+    screening: filteredApplications.filter((a) => a.status === 'screening').length
   };
 
   const getStatusColor = (status: Application['status']) => {
@@ -504,6 +640,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
           <button
             onClick={onLogout}
             className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+            data-testid="logout-btn"
           >
             <LogOut className="w-5 h-5" />
             Logout
@@ -521,7 +658,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
               </div>
               <div>
                 <p className="text-gray-600">Total Applications</p>
-                <p className="text-2xl">{stats.total}</p>
+                <p className="text-2xl" data-testid="total-applications">{stats.total}</p>
               </div>
             </div>
           </div>
@@ -533,7 +670,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
               </div>
               <div>
                 <p className="text-gray-600">New Applications</p>
-                <p className="text-2xl">{stats.new}</p>
+                <p className="text-2xl" data-testid="new-applications">{stats.new}</p>
               </div>
             </div>
           </div>
@@ -545,106 +682,98 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
               </div>
               <div>
                 <p className="text-gray-600">Under Review</p>
-                <p className="text-2xl">{stats.screening}</p>
+                <p className="text-2xl" data-testid="screening-applications">{stats.screening}</p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Applications Table */}
+        {/* Search & Filters */}
+        <div className="mb-6">
+          <SearchFilters
+            onFilterChange={handleFilterChange}
+            positions={positions}
+            stages={PIPELINE_STAGES}
+            savedFilters={savedFilters}
+            onSaveFilter={handleSaveFilter}
+            onDeleteFilter={handleDeleteFilter}
+            onShareFilter={handleShareFilter}
+            onLoadFilter={handleLoadFilter}
+            resultCount={filteredApplications.length}
+          />
+        </div>
+
+        {/* Applications */}
         <div className="bg-white rounded-xl shadow-sm overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="mb-4">Applications</h2>
-            
-            {/* Tabs */}
-            <div className="flex gap-2">
-              <button
-                onClick={() => setActiveTab('all')}
-                className={`px-4 py-2 rounded-lg transition-colors ${
-                  activeTab === 'all'
-                    ? 'bg-gray-900 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                All ({stats.total})
-              </button>
-              <button
-                onClick={() => setActiveTab('new')}
-                className={`px-4 py-2 rounded-lg transition-colors ${
-                  activeTab === 'new'
-                    ? 'bg-gray-900 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                New ({stats.new})
-              </button>
-              <button
-                onClick={() => setActiveTab('screening')}
-                className={`px-4 py-2 rounded-lg transition-colors ${
-                  activeTab === 'screening'
-                    ? 'bg-gray-900 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                Screening ({stats.screening})
-              </button>
-            </div>
-
-            {/* View Mode Toggle */}
-            <div className="mt-4 flex gap-2">
-              <button
-                onClick={() => setViewMode('table')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-                  viewMode === 'table'
-                    ? 'bg-gray-900 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                <Table className="w-4 h-4" />
-                <span>Table</span>
-              </button>
-              <button
-                onClick={() => setViewMode('kanban')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-                  viewMode === 'kanban'
-                    ? 'bg-gray-900 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                <LayoutGrid className="w-4 h-4" />
-                <span>Kanban</span>
-              </button>
+            <div className="flex items-center justify-between">
+              <h2>Applications</h2>
+              
+              {/* View Mode Toggle */}
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setViewMode('table')}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                    viewMode === 'table'
+                      ? 'bg-gray-900 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                  data-testid="view-table-btn"
+                >
+                  <Table className="w-4 h-4" />
+                  <span>Table</span>
+                </button>
+                <button
+                  onClick={() => setViewMode('kanban')}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                    viewMode === 'kanban'
+                      ? 'bg-gray-900 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                  data-testid="view-kanban-btn"
+                >
+                  <LayoutGrid className="w-4 h-4" />
+                  <span>Kanban</span>
+                </button>
+              </div>
             </div>
           </div>
 
           {viewMode === 'table' && (
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="w-full" data-testid="applications-table">
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-6 py-3 text-left text-gray-700">Applicant</th>
                     <th className="px-6 py-3 text-left text-gray-700">Position</th>
                     <th className="px-6 py-3 text-left text-gray-700">Contact</th>
                     <th className="px-6 py-3 text-left text-gray-700">Applied Date</th>
+                    <th className="px-6 py-3 text-left text-gray-700">Rating</th>
                     <th className="px-6 py-3 text-left text-gray-700">Status</th>
                     <th className="px-6 py-3 text-left text-gray-700">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   {filteredApplications.map((app) => (
-                    <tr key={app.id} className="hover:bg-gray-50">
+                    <tr key={app.id} className="hover:bg-gray-50" data-testid={`application-row-${app.id}`}>
                       <td className="px-6 py-4">
-                        <p>{app.applicantName}</p>
+                        <p className="font-medium">{app.applicantName}</p>
                       </td>
                       <td className="px-6 py-4">
                         <p className="text-gray-700">{app.jobTitle}</p>
                       </td>
                       <td className="px-6 py-4">
                         <p className="text-gray-700">{app.email}</p>
-                        <p className="text-gray-500">{app.phone}</p>
+                        <p className="text-gray-500 text-sm">{app.phone}</p>
                       </td>
                       <td className="px-6 py-4">
                         <p className="text-gray-700">{app.appliedDate}</p>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-1">
+                          <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+                          <span className="text-gray-700">{app.rating?.toFixed(1) || '-'}</span>
+                        </div>
                       </td>
                       <td className="px-6 py-4">
                         <span className={`px-3 py-1 rounded-full text-sm ${getStatusColor(app.status)}`}>
@@ -655,12 +784,20 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                         <button
                           onClick={() => setSelectedApplication(app)}
                           className="text-blue-600 hover:text-blue-800 transition-colors"
+                          data-testid={`view-details-${app.id}`}
                         >
                           View Details
                         </button>
                       </td>
                     </tr>
                   ))}
+                  {filteredApplications.length === 0 && (
+                    <tr>
+                      <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
+                        No applications match your filters. Try adjusting your search criteria.
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
@@ -679,7 +816,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
       {/* Application Detail Modal */}
       {selectedApplication && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-6 z-50">
-          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" data-testid="application-detail-modal">
             <div className="sticky top-0 bg-white border-b border-gray-200 px-8 py-6 flex justify-between items-start">
               <div>
                 <h2 className="mb-2">{selectedApplication.applicantName}</h2>
@@ -688,6 +825,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
               <button
                 onClick={() => setSelectedApplication(null)}
                 className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                data-testid="close-modal-btn"
               >
                 <X className="w-6 h-6" />
               </button>
