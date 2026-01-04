@@ -379,6 +379,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const [applications, setApplications] = useState<Application[]>(mockApplications);
   const [selectedApplication, setSelectedApplication] = useState<Application | null>(null);
   const [viewMode, setViewMode] = useState<'table' | 'kanban'>('kanban');
+  const [showJobManagement, setShowJobManagement] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isProcessing, setIsProcessing] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error'; undoAction?: () => void } | null>(null);
