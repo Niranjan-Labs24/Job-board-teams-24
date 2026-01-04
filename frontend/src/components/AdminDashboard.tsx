@@ -856,6 +856,11 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Show Job Management if selected */}
+      {showJobManagement ? (
+        <JobManagement onBack={() => setShowJobManagement(false)} />
+      ) : (
+      <>
       {/* Header */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
@@ -863,14 +868,24 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
             <Briefcase className="w-6 h-6" />
             <h1>Job Board Admin</h1>
           </div>
-          <button
-            onClick={onLogout}
-            className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-            data-testid="logout-btn"
-          >
-            <LogOut className="w-5 h-5" />
-            Logout
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowJobManagement(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              data-testid="job-management-btn"
+            >
+              <Settings className="w-5 h-5" />
+              Manage Jobs
+            </button>
+            <button
+              onClick={onLogout}
+              className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+              data-testid="logout-btn"
+            >
+              <LogOut className="w-5 h-5" />
+              Logout
+            </button>
+          </div>
         </div>
       </div>
 
