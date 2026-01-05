@@ -52,7 +52,9 @@ export async function POST(request: NextRequest) {
 
     await collection.insertOne(newJob);
     
-    return NextResponse.json(newJob, { status: 201 });
+    // Exclude _id from response (MongoDB adds it during insert)
+    const { _id, ...responseJob } = newJob as typeof newJob & { _id?: unknown };
+    return NextResponse.json(responseJob, { status: 201 });
   } catch (error) {
     console.error('Error creating job:', error);
     return NextResponse.json({ error: 'Failed to create job' }, { status: 500 });

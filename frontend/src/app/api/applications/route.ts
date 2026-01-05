@@ -65,7 +65,9 @@ export async function POST(request: NextRequest) {
       { $inc: { applicationsCount: 1 } }
     );
     
-    return NextResponse.json(newApplication, { status: 201 });
+    // Exclude _id from response (MongoDB adds it during insert)
+    const { _id, ...responseApplication } = newApplication as typeof newApplication & { _id?: unknown };
+    return NextResponse.json(responseApplication, { status: 201 });
   } catch (error) {
     console.error('Error creating application:', error);
     return NextResponse.json({ error: 'Failed to create application' }, { status: 500 });
