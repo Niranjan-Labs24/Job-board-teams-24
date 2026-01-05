@@ -219,16 +219,30 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
         if (response.ok) {
           const data = await response.json();
           // Transform API data to match component structure
-          const transformedData = data.map((app: Application & { name?: string; position?: string; appliedAt?: string; resumeUrl?: string }) => ({
-            ...app,
-            jobTitle: app.position || app.jobTitle,
-            applicantName: app.name || app.applicantName,
-            appliedDate: app.appliedAt?.split('T')[0] || app.appliedDate,
-            resume: app.resumeUrl || app.resume,
-            daysInStage: app.daysInStage || Math.floor((Date.now() - new Date(app.appliedAt || app.appliedDate || Date.now()).getTime()) / (1000 * 60 * 60 * 24)),
-            ratings: app.ratings || [],
-            notes: app.notes || [],
-          }));
+          const transformedData = data.map((app: Application & { name?: string; position?: string; appliedAt?: string; resumeUrl?: string; ratings?: Array<{ score?: number; maxScore?: number; rating?: number; [key: string]: unknown }> }) => {
+            // Transform ratings from API format (score/maxScore) to component format (rating)
+            const transformedRatings = (app.ratings || []).map((r: { score?: number; maxScore?: number; rating?: number; [key: string]: unknown }) => ({
+              ...r,
+              rating: r.rating ?? (r.score && r.maxScore ? (r.score / r.maxScore) * 5 : 0),
+            }));
+            
+            // Calculate average rating from transformed ratings
+            const avgRating = transformedRatings.length > 0
+              ? transformedRatings.reduce((acc: number, r: { rating?: number }) => acc + (r.rating || 0), 0) / transformedRatings.length
+              : app.rating || 0;
+            
+            return {
+              ...app,
+              jobTitle: app.position || app.jobTitle,
+              applicantName: app.name || app.applicantName,
+              appliedDate: app.appliedAt?.split('T')[0] || app.appliedDate,
+              resume: app.resumeUrl || app.resume,
+              daysInStage: app.daysInStage || Math.floor((Date.now() - new Date(app.appliedAt || app.appliedDate || Date.now()).getTime()) / (1000 * 60 * 60 * 24)),
+              rating: avgRating,
+              ratings: transformedRatings,
+              notes: app.notes || [],
+            };
+          });
           if (transformedData.length > 0) {
             setApplications(transformedData);
           }
