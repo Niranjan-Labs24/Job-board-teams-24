@@ -58,12 +58,39 @@ const formatDeadline = (deadline?: string) => {
 
 export function JobLanding({ onAdminClick }: JobLandingProps) {
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const activeJobs = mockJobs.filter(job => {
+  useEffect(() => {
+    async function fetchJobs() {
+      try {
+        const response = await fetch('/api/jobs');
+        if (response.ok) {
+          const data = await response.json();
+          setJobs(data);
+        }
+      } catch (error) {
+        console.error('Error fetching jobs:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchJobs();
+  }, []);
+
+  const activeJobs = jobs.filter(job => {
     if (job.status && job.status !== 'published') return false;
     if (job.applicationDeadline && isDeadlinePassed(job.applicationDeadline)) return false;
     return true;
   });
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white">
