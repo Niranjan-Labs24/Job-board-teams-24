@@ -189,6 +189,7 @@ interface AdminDashboardProps {
 
 export function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const [applications, setApplications] = useState<Application[]>(mockApplications);
+  const [loading, setLoading] = useState(true);
   const [selectedApplication, setSelectedApplication] = useState<Application | null>(null);
   const [viewMode, setViewMode] = useState<'table' | 'kanban'>('kanban');
   const [showJobManagement, setShowJobManagement] = useState(false);
@@ -209,6 +210,38 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
     hasPortfolio: null,
   });
   const [savedFilters, setSavedFilters] = useState<SavedFilter[]>([]);
+
+  // Fetch applications from API
+  useEffect(() => {
+    async function fetchApplications() {
+      try {
+        const response = await fetch('/api/applications');
+        if (response.ok) {
+          const data = await response.json();
+          // Transform API data to match component structure
+          const transformedData = data.map((app: Application & { name?: string; position?: string; appliedAt?: string; resumeUrl?: string }) => ({
+            ...app,
+            jobTitle: app.position || app.jobTitle,
+            applicantName: app.name || app.applicantName,
+            appliedDate: app.appliedAt?.split('T')[0] || app.appliedDate,
+            resume: app.resumeUrl || app.resume,
+            daysInStage: app.daysInStage || Math.floor((Date.now() - new Date(app.appliedAt || app.appliedDate || Date.now()).getTime()) / (1000 * 60 * 60 * 24)),
+            ratings: app.ratings || [],
+            notes: app.notes || [],
+          }));
+          if (transformedData.length > 0) {
+            setApplications(transformedData);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching applications:', error);
+        // Keep mock data on error
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchApplications();
+  }, []);
 
   const positions = useMemo(() => [...new Set(applications.map(app => app.jobTitle))], [applications]);
 
