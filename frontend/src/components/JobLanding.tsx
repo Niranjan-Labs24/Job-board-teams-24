@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { ArrowUpRight, Lock, Clock, AlertCircle } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { ArrowUpRight, Lock, Clock, AlertCircle, Loader2 } from 'lucide-react';
 import { JobDialog } from './JobDialog';
 
 export interface Job {
@@ -18,104 +18,6 @@ export interface Job {
   applicationDeadline?: string;
   status?: 'draft' | 'published' | 'paused' | 'closed' | 'archived';
 }
-
-const mockJobs: Job[] = [
-  {
-    id: '1',
-    title: 'Strategy & operations',
-    type: 'Full-time',
-    salaryMin: '$120k',
-    salaryMax: '$200k',
-    location: 'Chennai, Tamilnadu',
-    color: '#EC4899',
-    description: 'We are looking for a strategic thinker to join our operations team and help drive business growth.',
-    requirements: [
-      '5+ years of experience in strategy or operations',
-      'Strong analytical and problem-solving skills',
-      'Experience with data analysis and business intelligence tools',
-      'Excellent communication and presentation skills'
-    ],
-    responsibilities: [
-      'Develop and implement strategic initiatives',
-      'Analyze business metrics and identify opportunities',
-      'Collaborate with cross-functional teams',
-      'Present findings to leadership team'
-    ],
-    applicationDeadline: '2026-01-31',
-    status: 'published'
-  },
-  {
-    id: '2',
-    title: 'Full stack developer',
-    type: 'Full-time',
-    salaryMin: '$200k',
-    salaryMax: '$400k',
-    location: 'Remote',
-    color: '#3B82F6',
-    description: 'Join our engineering team to build cutting-edge web applications using modern technologies.',
-    requirements: [
-      '3+ years of experience in full-stack development',
-      'Proficiency in React, Node.js, and TypeScript',
-      'Experience with database design and optimization',
-      'Strong understanding of RESTful APIs and GraphQL'
-    ],
-    responsibilities: [
-      'Design and develop scalable web applications',
-      'Write clean, maintainable code',
-      'Collaborate with designers and product managers',
-      'Mentor junior developers'
-    ],
-    applicationDeadline: '2026-01-07',
-    status: 'published'
-  },
-  {
-    id: '3',
-    title: 'Senior product designer',
-    type: 'Full-time',
-    salaryMin: '$250k',
-    salaryMax: '$400k',
-    location: 'Bangalore, Karnataka',
-    color: '#F97316',
-    description: 'We are seeking a talented product designer to create intuitive and beautiful user experiences.',
-    requirements: [
-      '5+ years of product design experience',
-      'Expert knowledge of Figma and design systems',
-      'Strong portfolio demonstrating UX/UI skills',
-      'Experience with user research and testing'
-    ],
-    responsibilities: [
-      'Lead design projects from concept to launch',
-      'Create wireframes, prototypes, and high-fidelity designs',
-      'Conduct user research and usability testing',
-      'Collaborate with engineering and product teams'
-    ],
-    status: 'published'
-  },
-  {
-    id: '4',
-    title: 'Customer success manager',
-    type: 'Full-time',
-    salaryMin: '$225k',
-    salaryMax: '$400k',
-    location: 'Remote',
-    color: '#F472B6',
-    description: 'Help our customers succeed by providing exceptional support and building strong relationships.',
-    requirements: [
-      '3+ years of customer success experience',
-      'Excellent communication and interpersonal skills',
-      'Experience with CRM systems',
-      'Problem-solving mindset'
-    ],
-    responsibilities: [
-      'Onboard new customers and ensure adoption',
-      'Build and maintain customer relationships',
-      'Identify upsell and expansion opportunities',
-      'Gather customer feedback and insights'
-    ],
-    applicationDeadline: '2026-01-05',
-    status: 'published'
-  }
-];
 
 interface JobLandingProps {
   onAdminClick: () => void;
