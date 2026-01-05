@@ -1,4 +1,6 @@
 {
   "/api/health/route": "app/api/health/route.js",
-  "/api/seed/route": "app/api/seed/route.js"
+  "/api/seed/route": "app/api/seed/route.js",
+  "/api/jobs/route": "app/api/jobs/route.js",
+  "/api/applications/route": "app/api/applications/route.js"
 }
