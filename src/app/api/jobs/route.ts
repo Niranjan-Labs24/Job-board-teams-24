@@ -1,34 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { query, queryOne, execute } from '@/lib/db';
-import { Job, generateSlug } from '@/lib/types';
+import { getJobs, createJob } from '@/lib/db';
+import { generateSlug } from '@/lib/types';
 
 // GET all jobs
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const status = searchParams.get('status');
+    const status = searchParams.get('status') || undefined;
     const includeArchived = searchParams.get('includeArchived') === 'true';
     
-    let sql = 'SELECT * FROM jobs';
-    const params: string[] = [];
-    const conditions: string[] = [];
-    
-    if (status && status !== 'all') {
-      conditions.push(`status = $${params.length + 1}`);
-      params.push(status);
-    }
-    
-    if (!includeArchived) {
-      conditions.push(`status != 'archived'`);
-    }
-    
-    if (conditions.length > 0) {
-      sql += ' WHERE ' + conditions.join(' AND ');
-    }
-    
-    sql += ' ORDER BY created_at DESC';
-    
-    const jobs = await query<Job>(sql, params);
+    const jobs = await getJobs({ status, includeArchived });
     
     return NextResponse.json(jobs);
   } catch (error) {
@@ -46,39 +27,29 @@ export async function POST(request: NextRequest) {
     const tempId = Date.now().toString();
     const slug = generateSlug(body.title, tempId);
     
-    const sql = `
-      INSERT INTO jobs (
-        slug, title, type, salary_min, salary_max, location, color,
-        description, requirements, responsibilities, benefits,
-        status, application_deadline, meta_title, meta_description,
-        template_id, category
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
-      RETURNING *
-    `;
-    
-    const params = [
+    const jobData = {
       slug,
-      body.title,
-      body.type || 'full-time',
-      body.salary_min || '',
-      body.salary_max || '',
-      body.location || '',
-      body.color || '#3B82F6',
-      body.description || '',
-      body.requirements || [],
-      body.responsibilities || [],
-      body.benefits || [],
-      body.status || 'draft',
-      body.application_deadline || null,
-      body.meta_title || body.title,
-      body.meta_description || body.description?.substring(0, 160),
-      body.template_id || null,
-      body.category || null,
-    ];
+      title: body.title,
+      type: body.type || 'full-time',
+      salary_min: body.salary_min || '',
+      salary_max: body.salary_max || '',
+      location: body.location || '',
+      color: body.color || '#3B82F6',
+      description: body.description || '',
+      requirements: body.requirements || [],
+      responsibilities: body.responsibilities || [],
+      benefits: body.benefits || [],
+      status: body.status || 'draft',
+      application_deadline: body.application_deadline || null,
+      meta_title: body.meta_title || body.title,
+      meta_description: body.meta_description || body.description?.substring(0, 160),
+      template_id: body.template_id || null,
+      category: body.category || null,
+    };
     
-    const jobs = await query<Job>(sql, params);
+    const job = await createJob(jobData);
     
-    return NextResponse.json(jobs[0], { status: 201 });
+    return NextResponse.json(job, { status: 201 });
   } catch (error) {
     console.error('Error creating job:', error);
     return NextResponse.json({ error: 'Failed to create job' }, { status: 500 });
