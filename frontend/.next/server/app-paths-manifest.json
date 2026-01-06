@@ -3,6 +3,7 @@
   "/api/jobs/route": "app/api/jobs/route.js",
   "/admin/jobs/page": "app/admin/jobs/page.js",
   "/admin/jobs/[id]/page": "app/admin/jobs/[id]/page.js",
-  "/careers/page": "app/careers/page.js",
-  "/careers/[slug]/page": "app/careers/[slug]/page.js"
+  "/api/applications/route": "app/api/applications/route.js",
+  "/api/jobs/[id]/route": "app/api/jobs/[id]/route.js",
+  "/careers/page": "app/careers/page.js"
 }
