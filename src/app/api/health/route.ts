@@ -1,25 +1,13 @@
 import { NextResponse } from 'next/server';
-import { supabase } from '@/lib/db';
+import { checkHealth } from '@/lib/db';
 
 export async function GET() {
   try {
-    if (supabase) {
-      // Test Supabase connection
-      const { error } = await supabase.from('jobs').select('id').limit(1);
-      if (error && error.code !== 'PGRST116') throw error;
-      
-      return NextResponse.json({ 
-        status: 'healthy', 
-        service: 'Teams 24 Careers API (Next.js + Supabase)',
-        database: 'connected',
-        timestamp: new Date().toISOString()
-      });
-    }
+    await checkHealth();
     
-    // Fallback for local development
     return NextResponse.json({ 
       status: 'healthy', 
-      service: 'Teams 24 Careers API (Next.js + Local PostgreSQL)',
+      service: 'Teams 24 Careers API (Next.js + Supabase)',
       database: 'connected',
       timestamp: new Date().toISOString()
     });
