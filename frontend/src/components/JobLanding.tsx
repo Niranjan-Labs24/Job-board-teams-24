@@ -123,9 +123,12 @@ export function JobLanding({ onAdminClick }: JobLandingProps) {
 
         <div className="space-y-6">
           {activeJobs.map((job) => {
-            const daysUntil = getDaysUntilDeadline(job.applicationDeadline);
-            const approaching = isDeadlineApproaching(job.applicationDeadline);
-            const lastDay = isLastDay(job.applicationDeadline);
+            const deadline = job.application_deadline || job.applicationDeadline;
+            const daysUntil = getDaysUntilDeadline(deadline);
+            const approaching = isDeadlineApproaching(deadline);
+            const lastDay = isLastDay(deadline);
+            const salaryMin = job.salary_min || job.salaryMin;
+            const salaryMax = job.salary_max || job.salaryMax;
             
             return (
               <div
@@ -158,15 +161,15 @@ export function JobLanding({ onAdminClick }: JobLandingProps) {
                     )}
                   </div>
                   <p className="text-gray-600">
-                    {job.type} • {job.salaryMin} - {job.salaryMax} • {job.location}
+                    {job.type} • ${salaryMin} - ${salaryMax} • {job.location}
                   </p>
-                  {job.applicationDeadline && (
+                  {deadline && (
                     <p className={`text-sm mt-1 flex items-center gap-1 ${
                       lastDay ? 'text-red-600 font-medium' : 
                       approaching ? 'text-amber-600' : 'text-gray-500'
                     }`}>
                       <Clock className="w-3 h-3" />
-                      Apply by {formatDeadline(job.applicationDeadline)}
+                      Apply by {formatDeadline(deadline)}
                       {daysUntil !== null && daysUntil > 0 && daysUntil <= 7 && (
                         <span className="ml-1">
                           ({daysUntil} day{daysUntil !== 1 ? 's' : ''} left)
