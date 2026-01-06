@@ -1,0 +1,181 @@
+<analysis>**original_problem_statement**: The user initially requested a migration from React/Vite to a full-stack Next.js application with TypeScript, along with some UI fixes. This evolved into a complete architectural overhaul, replacing the separate FastAPI/MongoDB backend with Next.js API routes and a PostgreSQL database (in preparation for a final migration to Supabase).
+
+Most recently, the user reported issues with the preview environment (missing jobs, broken Create Job CTA) and a Vercel deployment error (No Next.js version detected). The agent fixed the preview issues by restarting the database and correcting environment variables. To solve the deployment error, the agent began restructuring the project, moving the Next.js application from the  subdirectory to the root  directory. The user also requested the implementation of a Job Sharing feature and the creation of two demo job posts, which were completed.
+
+**User's preferred language**: English
+
+**what currently exists?**
+The project is a full-stack Next.js application with a local PostgreSQL database. All backend logic is handled by Next.js API routes. The project structure has just been modified to place the Next.js application at the root of the  directory to make it directly deployable to services like Vercel. An old, unused FastAPI backend directory () and an empty frontend directory () still exist but are now obsolete.
+
+**Last working item**:
+-   **Last item agent was working**: Restructuring the project for direct Vercel deployment. The agent moved all files and folders from  to the root  directory and created a , , and a  for Supabase.
+-   **Status**: IN PROGRESS
+-   **Agent Testing Done**: N (Testing has not been performed since the project files were moved).
+-   **Which testing method agent to use?**: Frontend testing agent. A full regression test is required to ensure the application is not broken after the major file restructuring.
+-   **User Testing Done**: N
+
+**All Pending/In progress Issue list**:
+-   **Issue 1 (P0)**: Vercel deployment error (No Next.js version detected).
+-   **Issue 2 (P1)**: The application is potentially broken after the major project restructure.
+
+    **Issues Detail**:
+    -   **Issue 1: Vercel Deployment Error**
+        -   **Attempted fixes**: The agent moved the entire Next.js application from  to the root  directory. This is the standard fix for this Vercel error. The fix needs to be verified.
+        -   **Next debug checklist**:
+            1.  Remove the now-empty  directory.
+            2.  Remove the obsolete  directory.
+            3.  Verify that  is in the  root.
+            4.  Restart the supervisor  service and confirm the application runs correctly from the new root location.
+            5.  Run a full regression test using the .
+        -   **Why fix this issue and what will be achieved with the fix?**: This will make the project ready for direct deployment on Vercel, as requested by the user.
+        -   **Status**: IN PROGRESS
+        -   **Is recurring issue?**: N
+        -   **Should Test frontend/backend/both after fix?**: Both.
+        -   **Blocked on other issue**: None.
+
+    -   **Issue 2: Post-Restructure Application Health**
+        -   **Attempted fixes**: None yet. The restructure was just performed.
+        -   **Next debug checklist**: Same as above. The primary task is to test if the application still works after moving all files. Check for broken paths and ensure the server starts.
+        -   **Why fix this issue and what will be achieved with the fix?**: To confirm the application is stable before proceeding with new features.
+        -   **Status**: NOT STARTED
+        -   **Is recurring issue?**: N
+        -   **Should Test frontend/backend/both after fix?**: Both.
+        -   **Blocked on other issue**: None.
+
+**In progress Task List**:
+-   **Task 1: Finalize Project Restructuring (P0)**
+    -   **Where to resume**: The files have been moved to . The next steps are to clean up the old directories and verify the application's functionality.
+        1.  Execute  and  to remove the obsolete directories.
+        2.  Restart the  service with frontend: ERROR (not running)
+frontend: ERROR (spawn error).
+        3.  Check the supervisor logs (==> /var/log/supervisor/frontend.err.log <==
+
+==> /var/log/supervisor/frontend.out.log <==) to ensure the server starts correctly from the root directory.
+        4.  Perform a smoke test by taking a screenshot of the landing page.
+        5.  Run the testing agent to perform a full regression test.
+    -   **What will be achieved with this?**: A clean, deployable, and verified project structure.
+    -   **Status**: IN PROGRESS
+    -   **Should Test frontend/backend/both after fix?**: Both.
+    -   **Blocked on something**: No.
+
+**Upcoming and Future Tasks**
+-   **Upcoming Tasks**:
+    -   **(P1) Connect to Supabase**: The user wants to use a live Supabase (PostgreSQL) database for deployment. The application is ready for this, pending the user providing their Supabase project URL and keys.
+-   **Future Tasks (from PRD v3)**:
+    -   **(P1)** Email Notification System
+    -   **(P2)** Email Templates
+    -   **(P2)** Interview Scheduling
+    -   **(P2)** Analytics Dashboard
+    -   **(P3)** LinkedIn Profile Auto-Import
+
+**Completed work in this session**
+-   **Full-Stack Migration**: Migrated the entire application from a React/Vite + FastAPI/MongoDB stack to a monolithic Next.js + PostgreSQL stack.
+-   **Database Setup**: Installed PostgreSQL, created a full database schema (), and seeded it with data.
+-   **Architectural Rework**: Implemented the Job-Centric Admin Dashboard and SEO-Optimized Job Pages () as per PRD v3.
+-   **Feature Implementation**:
+    -   Added a functional Create Job modal to the admin dashboard.
+    -   Added a Job Templates tab and functionality in the admin panel.
+    -   Added a Share feature on job pages with social media and copy-link buttons.
+-   **Bug Fixes & User Requests**:
+    -   Resolved issues where no jobs were displaying by fixing the database connection.
+    -   Created two demo job postings (AI/ML Engineer and Head of Marketing).
+    -   Initiated project restructuring to fix Vercel deployment issues.
+-   **Cleanup**: Stopped and disabled the unused FastAPI and MongoDB services.
+
+**Code Architecture**
+-   **Framework**: Full-stack Next.js 15 (App Router).
+-   **Directory**: The entire application is now located in the  root directory.
+-   **Source Code**: 
+-   **API Routes**: 
+-   **UI Components**: 
+-   **Pages**: 
+-   **Database**: Local PostgreSQL, ready for Supabase.
+
+**Key Technical Concepts**
+-   Next.js (App Router, API Routes, Server & Client Components)
+-   TypeScript
+-   PostgreSQL (with  npm package)
+-   Tailwind CSS
+-   Vercel Deployment Configuration
+
+**key DB schema**
+-   : Stores job postings (slug, title, status, salary, etc.).
+-   : Stores candidate applications, linked to .
+-   : Reusable templates for creating jobs.
+-   : Stores ratings for applications.
+-   : Stores notes for applications.
+-   : For potential future user management.
+
+**changes in tech stack**
+-   **Backend**: FastAPI -> Next.js API Routes.
+-   **Database**: MongoDB -> PostgreSQL.
+-   **Project Structure**:  ->  (root).
+
+**All files of reference**
+-   : PostgreSQL database connection utility.
+-   : Full database schema for PostgreSQL/Supabase.
+-   : Directory containing all backend API endpoints.
+-   : Main admin dashboard.
+-   : Public-facing careers page.
+-   : Now located at the root, defines dependencies.
+-   : Updated with deployment instructions.
+-   : Example environment file.
+
+**Areas that need refactoring**:
+-   The  and  directories are now obsolete and need to be deleted to finalize the project restructuring.
+
+**key api endpoints**
+-   : GET, POST
+-   : GET, PUT, DELETE
+-   : GET, POST
+-   : POST
+-   : GET, POST
+-   : DELETE
+-   : POST (for development)
+-   : GET
+
+**Critical Info for New Agent**
+-   **The project was just restructured!** The Next.js app was moved from  to . Your immediate task is to verify that the application still runs correctly after this change and clean up the old, empty directories.
+-   The user's goal is to deploy to Vercel. The current structure is intended to support this.
+-   The application uses a local PostgreSQL database. You may need to start the service () and re-seed the database via the  endpoint if data is missing.
+-   The user wants to connect to Supabase. Be prepared to ask for their project URL and anonymous key to update the  file.
+-   The old FastAPI backend in  is no longer used and should be removed.
+
+**documents and test reports created in this job**
+-   
+-   
+-   
+-   
+-   
+
+**Last 10 User Messages and any pending HUMAN messages**
+1.  **User**: Reports Vercel deployment error and asks to make the app deployable from a GitHub repo. (IN PROGRESS)
+2.  **Agent**: Informs user that all issues (Create Job, Templates, landing page display) are fixed and asks about Supabase setup. (Completed)
+3.  **User**: Reports multiple issues with the preview: no Templates tab, no jobs showing on admin/landing pages, and Create Job not working. Asks if production DB access is needed and points out discrepancy with a provided screenshot. (Resolved)
+4.  **Agent**: Confirms all tasks are complete, including the backend migration to Next.js, and asks user to share Supabase credentials for final connection. (Completed)
+5.  **User**: Confirms the backend is fully contained in Next.js, asks to fix the non-working Create Job CTA, create 2 demo jobs, and add a job sharing feature (social media + copy link). (Resolved)
+6.  **Agent**: Informs user Option A (Job-Centric Dashboard + SEO Pages) is complete and suggests adding social sharing features. (Completed)
+7.  **User**: Asks to proceed with PostgreSQL for now and add a live Supabase database later. (Completed)
+8.  **Agent**: Asks for Supabase credentials. (Responded by user)
+9.  **User**: Asks to proceed and also wants to change the database from MongoDB to Supabase (PostgreSQL). (Completed)
+10. **Agent**: Asks for confirmation to proceed with Option A (Job-Centric Dashboard + SEO Pages). (Responded by user)
+
+**Project Health Check:**
+-   **Broken**: Potentially. The application has undergone a major file restructuring and has not been tested since. It needs immediate verification.
+-   **Mocked**: None. All data is served from a local PostgreSQL database via Next.js API routes.
+
+**3rd Party Integrations**
+-    (Node.js PostgreSQL client).
+-   Supabase is the intended cloud database provider (pending user credentials).
+
+**Testing status**
+-   **Testing agent used after significant changes**: Yes, it was used multiple times, with all tests passing before the final project restructure. It has **not** been used after the restructure.
+-   **Test files created**: None.
+-   **Known regressions**: The entire application's functionality is a potential regression due to the recent file moves.
+
+**Credentials to test flow:**
+-   N/A. The application is fully accessible for testing without credentials. Admin access is gained by clicking the lock icon on the landing page.
+
+**What agent forgot to execute**
+-   The agent did not delete the old  and  directories after moving files to the root, leaving the project in an untidy state.
+-   The agent did not test the application after performing the major restructuring, so it's unknown if the app is currently functional.</analysis>
