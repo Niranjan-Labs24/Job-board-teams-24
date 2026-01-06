@@ -1,7 +1,7 @@
 # Teams 24 Careers - Product Requirements Document
 
 ## Overview
-A full-stack job board application built with **Next.js** (frontend + API), **TypeScript**, and **PostgreSQL** database. Designed for **Vercel deployment** with **Supabase** for database hosting.
+A full-stack job board application built with **Next.js** (frontend + API), **TypeScript**, and **Supabase** (PostgreSQL). Designed for **Vercel deployment**.
 
 ## Original Problem Statement
 Build a modern job board with:
@@ -12,22 +12,21 @@ Build a modern job board with:
 - Fully serverless architecture (Next.js API routes)
 
 ## Tech Stack
-- **Frontend**: Next.js 15 (App Router), React, TypeScript, Tailwind CSS
+- **Frontend**: Next.js 14 (App Router), React, TypeScript, Tailwind CSS
 - **Backend**: Next.js API Routes (no separate backend!)
-- **Database**: PostgreSQL (ready for Supabase)
+- **Database**: Supabase (PostgreSQL)
 - **Icons**: Lucide React
-- **Deployment**: Vercel + Supabase ready
+- **Deployment**: Vercel + Supabase
 
-## Architecture (Vercel-Ready)
+## Architecture
 ```
-/app/frontend/                 # Single deployable unit
+/app/                          # Root - Single deployable unit
 ├── src/
 │   ├── app/
 │   │   ├── api/              # Next.js API Routes (serverless)
 │   │   │   ├── jobs/         # CRUD for jobs
 │   │   │   ├── applications/ # CRUD for applications
 │   │   │   ├── templates/    # Job templates
-│   │   │   ├── auth/         # Authentication
 │   │   │   ├── health/       # Health check
 │   │   │   └── seed/         # Database seeding
 │   │   ├── admin/
@@ -42,15 +41,19 @@ Build a modern job board with:
 │   ├── components/
 │   │   └── ShareButton.tsx   # Social sharing component
 │   └── lib/
-│       ├── db.ts             # PostgreSQL connection
+│       ├── db.ts             # Supabase connection
+│       ├── supabase.ts       # Supabase client
 │       └── types.ts          # TypeScript definitions
+├── package.json
+├── .env.local                # Environment variables
+└── .env.example              # Template for deployment
 ```
 
 ## Core Features
 
 ### ✅ Phase 1: Core Application (COMPLETE)
 - [x] Job Listings Page
-- [x] Admin Login (mock auth)
+- [x] Admin Dashboard
 - [x] Kanban Pipeline
 - [x] Candidate Cards
 
@@ -60,34 +63,22 @@ Build a modern job board with:
 - [x] Job Templates
 - [x] Application Deadlines
 
-### ✅ Phase 3: Option A - Architecture (COMPLETE - Jan 6, 2026)
+### ✅ Phase 3: Option A - Architecture (COMPLETE)
 - [x] **Job-Centric Admin Dashboard** (`/admin/jobs`)
-  - Stats cards (Total Jobs, Active, Applications, Closing Soon)
-  - Status filter tabs
-  - Create Job modal with full form
-  - Quick actions (publish, pause, close)
 - [x] **Per-Job Applications View** (`/admin/jobs/[id]`)
-  - Kanban board scoped to job
-  - Table/Kanban toggle
-  - Stage management
 - [x] **SEO-Optimized Job Pages** (`/careers/[slug]`)
-  - Meta tags, OpenGraph, Twitter cards
-  - JSON-LD JobPosting schema
-  - Application form
-- [x] **Social Sharing** (NEW)
-  - Copy link functionality
-  - LinkedIn, Twitter, Facebook, Email share buttons
-  - Native share API support (mobile)
+- [x] **Social Sharing** (LinkedIn, Twitter, Facebook, Email, Copy Link)
 
 ### ✅ Phase 4: Database Migration (COMPLETE)
-- [x] PostgreSQL schema with foreign keys
+- [x] PostgreSQL schema
 - [x] Removed MongoDB dependency
 - [x] Removed separate FastAPI backend
-- [x] Ready for Supabase migration
+- [x] Connected to Supabase cloud database
 
-## Demo Jobs Created
-1. **AI/ML Engineer** - Remote/San Francisco, $180k-$300k
-2. **Head of Marketing** - New York City, $200k-$350k
+### ✅ Phase 5: Project Restructuring (COMPLETE - Jan 6, 2026)
+- [x] Moved project from `/app/frontend` to `/app` root
+- [x] Connected to Supabase PostgreSQL
+- [x] Ready for Vercel deployment
 
 ## API Endpoints
 
@@ -100,44 +91,29 @@ Build a modern job board with:
 | PUT | /api/jobs/:id | Update job |
 | DELETE | /api/jobs/:id | Delete job |
 | GET | /api/applications | List applications |
-| GET | /api/applications?jobId=xxx | Filter by job |
 | POST | /api/applications | Create application |
 | PUT | /api/applications/:id | Update application |
-| POST | /api/applications/bulk | Bulk actions |
+| GET | /api/templates | List templates |
+| POST | /api/templates | Create template |
 
-## Credentials
-- Admin Email: `admin@jobboard.com`
-- Admin Password: `admin123`
-
-## Deployment Guide
+## Deployment
 
 ### Vercel Deployment
-```bash
-# 1. Push to GitHub
-# 2. Connect to Vercel
-# 3. Set environment variables:
-#    - POSTGRES_HOST=your-supabase-host.supabase.co
-#    - POSTGRES_PORT=5432
-#    - POSTGRES_DB=postgres
-#    - POSTGRES_USER=postgres
-#    - POSTGRES_PASSWORD=your-password
-# 4. Deploy!
-```
+1. Push to GitHub
+2. Connect repo to Vercel
+3. Set environment variables:
+   - `SUPABASE_URL`
+   - `SUPABASE_ANON_KEY`
+4. Deploy!
 
-### Supabase Setup
-1. Create a new Supabase project
-2. Run the schema SQL (see database section)
-3. Copy the connection string
-4. Add to Vercel environment variables
+### Supabase Configuration
+- **Project URL**: `https://fgelafnlezxfpptosovb.supabase.co`
+- **Database**: PostgreSQL with full schema applied
 
 ## Next Steps / Backlog
 
-### P0 - Ready for Production
-- [ ] Connect to Supabase (replace local PostgreSQL)
-- [ ] Add Supabase Auth (replace mock auth)
-- [ ] Configure Vercel deployment
-
 ### P1 - High Priority
+- [ ] Add Supabase Auth (replace mock auth)
 - [ ] Drag-and-drop Kanban
 - [ ] Email notifications (Resend/SendGrid)
 - [ ] Interview scheduling
@@ -154,17 +130,16 @@ Build a modern job board with:
 
 ## Changelog
 
-### January 6, 2026
-- ✅ Fixed Create Job CTA - added full modal with form
-- ✅ Created 2 demo jobs (AI/ML Engineer, Head of Marketing)
-- ✅ Added Share feature with LinkedIn, Twitter, Facebook, Email + Copy Link
-- ✅ Removed separate backend - fully Next.js now
-- ✅ Verified Vercel + Supabase deployment readiness
+### January 6, 2026 (Latest)
+- ✅ Connected to Supabase cloud database
+- ✅ Restructured project from `/app/frontend` to `/app` root
+- ✅ All API routes working with Supabase REST API
+- ✅ Ready for Vercel deployment
 
 ### January 6, 2026 (Earlier)
+- ✅ Fixed Create Job CTA
+- ✅ Created demo jobs
+- ✅ Added Share feature
 - ✅ PostgreSQL migration from MongoDB
 - ✅ Job-Centric Admin Dashboard
-- ✅ SEO-optimized job pages with JSON-LD
-
-### January 5, 2026
-- ✅ Next.js migration from React/Vite
+- ✅ SEO-optimized job pages
