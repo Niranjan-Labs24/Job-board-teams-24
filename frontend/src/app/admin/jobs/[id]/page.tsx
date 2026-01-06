@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, use } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, useParams } from 'next/navigation';
 import { 
   ArrowLeft, Users, Search, Filter, LayoutGrid, Table as TableIcon,
   Star, Mail, FileText, Eye, MoreVertical, ChevronRight, Loader2,
@@ -51,8 +51,9 @@ const stageConfig: Record<string, { label: string; bg: string; text: string }> =
 
 const stages = ['new', 'screening', 'interview_scheduled', 'interview_complete', 'offer_pending', 'hired'];
 
-export default function JobApplicationsPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+export default function JobApplicationsPage() {
+  const params = useParams();
+  const id = params.id as string;
   const router = useRouter();
   const [job, setJob] = useState<Job | null>(null);
   const [applications, setApplications] = useState<Application[]>([]);
