@@ -73,6 +73,8 @@ export default function AdminJobsPage() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [formData, setFormData] = useState<JobFormData>(initialFormData);
+  const [creating, setCreating] = useState(false);
 
   useEffect(() => {
     fetchJobs();
@@ -93,6 +95,35 @@ export default function AdminJobsPage() {
       console.error('Error fetching jobs:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCreateJob = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCreating(true);
+    
+    try {
+      const response = await fetch('/api/jobs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...formData,
+          requirements: formData.requirements.split('\n').filter(r => r.trim()),
+          responsibilities: formData.responsibilities.split('\n').filter(r => r.trim()),
+          benefits: formData.benefits.split('\n').filter(r => r.trim()),
+          application_deadline: formData.application_deadline || null,
+        }),
+      });
+      
+      if (response.ok) {
+        setShowCreateModal(false);
+        setFormData(initialFormData);
+        fetchJobs();
+      }
+    } catch (error) {
+      console.error('Error creating job:', error);
+    } finally {
+      setCreating(false);
     }
   };
 
