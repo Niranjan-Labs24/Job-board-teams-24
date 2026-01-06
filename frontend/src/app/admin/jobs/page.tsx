@@ -459,6 +459,225 @@ export default function AdminJobsPage() {
           onClick={() => setActiveMenu(null)}
         />
       )}
+
+      {/* Create Job Modal */}
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-6 z-50">
+          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
+              <h2 className="text-xl font-semibold">Create New Job</h2>
+              <button
+                onClick={() => {
+                  setShowCreateModal(false);
+                  setFormData(initialFormData);
+                }}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateJob} className="p-6 space-y-5">
+              {/* Title */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Job Title *</label>
+                <input
+                  type="text"
+                  required
+                  value={formData.title}
+                  onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  placeholder="e.g., Senior Software Engineer"
+                  data-testid="job-title-input"
+                />
+              </div>
+
+              {/* Type, Location, Category Row */}
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Type *</label>
+                  <select
+                    value={formData.type}
+                    onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value }))}
+                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="full-time">Full-time</option>
+                    <option value="part-time">Part-time</option>
+                    <option value="contract">Contract</option>
+                    <option value="internship">Internship</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Location *</label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.location}
+                    onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
+                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    placeholder="e.g., Remote, New York"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                  <input
+                    type="text"
+                    value={formData.category}
+                    onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
+                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    placeholder="e.g., Engineering"
+                  />
+                </div>
+              </div>
+
+              {/* Salary Range */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Salary Min</label>
+                  <input
+                    type="text"
+                    value={formData.salary_min}
+                    onChange={(e) => setFormData(prev => ({ ...prev, salary_min: e.target.value }))}
+                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    placeholder="e.g., 100k"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Salary Max</label>
+                  <input
+                    type="text"
+                    value={formData.salary_max}
+                    onChange={(e) => setFormData(prev => ({ ...prev, salary_max: e.target.value }))}
+                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    placeholder="e.g., 150k"
+                  />
+                </div>
+              </div>
+
+              {/* Color Picker */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Job Color</label>
+                <div className="flex items-center gap-2">
+                  {colorOptions.map(color => (
+                    <button
+                      key={color}
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, color }))}
+                      className={`w-8 h-8 rounded-full transition-transform ${formData.color === color ? 'ring-2 ring-offset-2 ring-indigo-500 scale-110' : 'hover:scale-105'}`}
+                      style={{ backgroundColor: color }}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Description *</label>
+                <textarea
+                  required
+                  rows={3}
+                  value={formData.description}
+                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+                  placeholder="Describe the role and what makes it exciting..."
+                />
+              </div>
+
+              {/* Requirements */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Requirements (one per line)</label>
+                <textarea
+                  rows={3}
+                  value={formData.requirements}
+                  onChange={(e) => setFormData(prev => ({ ...prev, requirements: e.target.value }))}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+                  placeholder="5+ years experience&#10;Strong communication skills&#10;..."
+                />
+              </div>
+
+              {/* Responsibilities */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Responsibilities (one per line)</label>
+                <textarea
+                  rows={3}
+                  value={formData.responsibilities}
+                  onChange={(e) => setFormData(prev => ({ ...prev, responsibilities: e.target.value }))}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+                  placeholder="Lead technical projects&#10;Mentor team members&#10;..."
+                />
+              </div>
+
+              {/* Benefits */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Benefits (one per line)</label>
+                <textarea
+                  rows={2}
+                  value={formData.benefits}
+                  onChange={(e) => setFormData(prev => ({ ...prev, benefits: e.target.value }))}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+                  placeholder="Health insurance&#10;Stock options&#10;..."
+                />
+              </div>
+
+              {/* Deadline & Status */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Application Deadline</label>
+                  <input
+                    type="date"
+                    value={formData.application_deadline}
+                    onChange={(e) => setFormData(prev => ({ ...prev, application_deadline: e.target.value }))}
+                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Initial Status</label>
+                  <select
+                    value={formData.status}
+                    onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value }))}
+                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="draft">Draft (save for later)</option>
+                    <option value="published">Published (go live now)</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-3 pt-4 border-t border-gray-200">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowCreateModal(false);
+                    setFormData(initialFormData);
+                  }}
+                  className="flex-1 px-4 py-3 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={creating}
+                  className="flex-1 px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                  data-testid="submit-job-btn"
+                >
+                  {creating ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Creating...
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="w-4 h-4" />
+                      Create Job
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
