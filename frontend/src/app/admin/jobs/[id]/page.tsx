@@ -120,13 +120,19 @@ export default function JobApplicationsPage() {
 
   const getAppsByStage = (stage: string) => filteredApps.filter(app => app.stage === stage);
 
-  const renderStars = (rating: number) => {
+  const renderStars = (rating: number | string | null | undefined) => {
+    const numRating = Number(rating) || 0;
     return Array.from({ length: 5 }, (_, i) => (
       <Star
         key={i}
-        className={`w-3 h-3 ${i < Math.round(rating) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`}
+        className={`w-3 h-3 ${i < Math.round(numRating) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`}
       />
     ));
+  };
+
+  const formatRating = (rating: number | string | null | undefined): string => {
+    const numRating = Number(rating) || 0;
+    return numRating.toFixed(1);
   };
 
   if (loading) {
