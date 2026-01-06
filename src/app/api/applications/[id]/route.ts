@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { query, queryOne, execute } from '@/lib/db';
-import { Application, CandidateRating, CandidateNote } from '@/lib/types';
+import { getApplicationById, updateApplication, supabase } from '@/lib/db';
 
 // GET single application with ratings and notes
 export async function GET(
@@ -11,34 +10,43 @@ export async function GET(
     const { id } = await params;
     
     // Get application with job info
-    const application = await queryOne<Application>(
-      `SELECT a.*, j.title as job_title, j.slug as job_slug
-       FROM applications a
-       LEFT JOIN jobs j ON a.job_id = j.id
-       WHERE a.id = $1`,
-      [id]
-    );
+    const { data: application, error: appError } = await supabase
+      .from('applications')
+      .select(`
+        *,
+        jobs!inner(title, slug)
+      `)
+      .eq('id', id)
+      .single();
+    
+    if (appError && appError.code !== 'PGRST116') throw appError;
     
     if (!application) {
       return NextResponse.json({ error: 'Application not found' }, { status: 404 });
     }
     
     // Get ratings
-    const ratings = await query<CandidateRating>(
-      'SELECT * FROM candidate_ratings WHERE application_id = $1 ORDER BY created_at DESC',
-      [id]
-    );
+    const { data: ratings } = await supabase
+      .from('candidate_ratings')
+      .select('*')
+      .eq('application_id', id)
+      .order('created_at', { ascending: false });
     
     // Get notes
-    const notes = await query<CandidateNote>(
-      'SELECT * FROM candidate_notes WHERE application_id = $1 ORDER BY is_pinned DESC, created_at DESC',
-      [id]
-    );
+    const { data: notes } = await supabase
+      .from('candidate_notes')
+      .select('*')
+      .eq('application_id', id)
+      .order('is_pinned', { ascending: false })
+      .order('created_at', { ascending: false });
     
     return NextResponse.json({
       ...application,
-      ratings,
-      notes,
+      job_title: application.jobs?.title,
+      job_slug: application.jobs?.slug,
+      jobs: undefined,
+      ratings: ratings || [],
+      notes: notes || [],
     });
   } catch (error) {
     console.error('Error fetching application:', error);
@@ -55,49 +63,36 @@ export async function PUT(
     const { id } = await params;
     const body = await request.json();
     
-    const updates: string[] = [];
-    const values: unknown[] = [];
-    let paramCount = 1;
-    
     const allowedFields = [
       'name', 'email', 'phone', 'position', 'resume_url',
       'linkedin', 'portfolio', 'cover_letter', 'experience',
       'status', 'stage', 'rating', 'is_archived'
     ];
     
+    const updateData: Record<string, unknown> = {};
+    
     for (const field of allowedFields) {
       if (body[field] !== undefined) {
-        updates.push(`${field} = $${paramCount}`);
-        values.push(body[field]);
-        paramCount++;
+        updateData[field] = body[field];
       }
     }
     
     // Update stage_changed_at if stage changed
     if (body.stage || body.status) {
-      updates.push(`stage_changed_at = NOW()`);
+      updateData.stage_changed_at = new Date().toISOString();
     }
     
-    if (updates.length === 0) {
+    if (Object.keys(updateData).length === 0) {
       return NextResponse.json({ error: 'No fields to update' }, { status: 400 });
     }
     
-    values.push(id);
+    const application = await updateApplication(id, updateData);
     
-    const sql = `
-      UPDATE applications 
-      SET ${updates.join(', ')}
-      WHERE id = $${paramCount}
-      RETURNING *
-    `;
-    
-    const applications = await query<Application>(sql, values);
-    
-    if (applications.length === 0) {
+    if (!application) {
       return NextResponse.json({ error: 'Application not found' }, { status: 404 });
     }
     
-    return NextResponse.json(applications[0]);
+    return NextResponse.json(application);
   } catch (error) {
     console.error('Error updating application:', error);
     return NextResponse.json({ error: 'Failed to update application' }, { status: 500 });
@@ -113,23 +108,35 @@ export async function DELETE(
     const { id } = await params;
     
     // Get job_id before deleting
-    const app = await queryOne<Application>(
-      'SELECT job_id FROM applications WHERE id = $1',
-      [id]
-    );
+    const app = await getApplicationById(id);
     
     if (!app) {
       return NextResponse.json({ error: 'Application not found' }, { status: 404 });
     }
     
     // Delete application
-    await execute('DELETE FROM applications WHERE id = $1', [id]);
+    const { error } = await supabase
+      .from('applications')
+      .delete()
+      .eq('id', id);
+    
+    if (error) throw error;
     
     // Update job applications count
-    await execute(
-      'UPDATE jobs SET applications_count = GREATEST(applications_count - 1, 0) WHERE id = $1',
-      [app.job_id]
-    );
+    if (app.job_id) {
+      const { data: job } = await supabase
+        .from('jobs')
+        .select('applications_count')
+        .eq('id', app.job_id)
+        .single();
+      
+      if (job) {
+        await supabase
+          .from('jobs')
+          .update({ applications_count: Math.max((job.applications_count || 0) - 1, 0) })
+          .eq('id', app.job_id);
+      }
+    }
     
     return NextResponse.json({ success: true });
   } catch (error) {
