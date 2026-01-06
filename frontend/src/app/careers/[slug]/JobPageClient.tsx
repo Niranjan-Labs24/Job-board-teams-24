@@ -184,11 +184,12 @@ export default function JobPageClient({ job }: JobPageClientProps) {
                 <button
                   onClick={() => setShowApplicationForm(true)}
                   className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
-                data-testid="apply-now-btn"
-              >
-                Apply Now
-              </button>
-            )}
+                  data-testid="apply-now-btn"
+                >
+                  Apply Now
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>
