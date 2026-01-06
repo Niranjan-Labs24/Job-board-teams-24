@@ -1,22 +1,45 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCollection } from '@/lib/mongodb';
+import { query, queryOne, execute } from '@/lib/db';
+import { Application, CandidateRating, CandidateNote } from '@/lib/types';
 
-// GET single application
+// GET single application with ratings and notes
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params;
-    const collection = await getCollection('applications');
-    const application = await collection.findOne({ id });
+    
+    // Get application with job info
+    const application = await queryOne<Application>(
+      `SELECT a.*, j.title as job_title, j.slug as job_slug
+       FROM applications a
+       LEFT JOIN jobs j ON a.job_id = j.id
+       WHERE a.id = $1`,
+      [id]
+    );
     
     if (!application) {
       return NextResponse.json({ error: 'Application not found' }, { status: 404 });
     }
     
-    const { _id, ...appData } = application;
-    return NextResponse.json(appData);
+    // Get ratings
+    const ratings = await query<CandidateRating>(
+      'SELECT * FROM candidate_ratings WHERE application_id = $1 ORDER BY created_at DESC',
+      [id]
+    );
+    
+    // Get notes
+    const notes = await query<CandidateNote>(
+      'SELECT * FROM candidate_notes WHERE application_id = $1 ORDER BY is_pinned DESC, created_at DESC',
+      [id]
+    );
+    
+    return NextResponse.json({
+      ...application,
+      ratings,
+      notes,
+    });
   } catch (error) {
     console.error('Error fetching application:', error);
     return NextResponse.json({ error: 'Failed to fetch application' }, { status: 500 });
@@ -31,24 +54,50 @@ export async function PUT(
   try {
     const { id } = await params;
     const body = await request.json();
-    const collection = await getCollection('applications');
     
-    const updates = { ...body };
-    delete updates._id;
-    delete updates.id;
+    const updates: string[] = [];
+    const values: unknown[] = [];
+    let paramCount = 1;
     
-    const result = await collection.findOneAndUpdate(
-      { id },
-      { $set: updates },
-      { returnDocument: 'after' }
-    );
+    const allowedFields = [
+      'name', 'email', 'phone', 'position', 'resume_url',
+      'linkedin', 'portfolio', 'cover_letter', 'experience',
+      'status', 'stage', 'rating', 'is_archived'
+    ];
     
-    if (!result) {
+    for (const field of allowedFields) {
+      if (body[field] !== undefined) {
+        updates.push(`${field} = $${paramCount}`);
+        values.push(body[field]);
+        paramCount++;
+      }
+    }
+    
+    // Update stage_changed_at if stage changed
+    if (body.stage || body.status) {
+      updates.push(`stage_changed_at = NOW()`);
+    }
+    
+    if (updates.length === 0) {
+      return NextResponse.json({ error: 'No fields to update' }, { status: 400 });
+    }
+    
+    values.push(id);
+    
+    const sql = `
+      UPDATE applications 
+      SET ${updates.join(', ')}
+      WHERE id = $${paramCount}
+      RETURNING *
+    `;
+    
+    const applications = await query<Application>(sql, values);
+    
+    if (applications.length === 0) {
       return NextResponse.json({ error: 'Application not found' }, { status: 404 });
     }
     
-    const { _id, ...appData } = result;
-    return NextResponse.json(appData);
+    return NextResponse.json(applications[0]);
   } catch (error) {
     console.error('Error updating application:', error);
     return NextResponse.json({ error: 'Failed to update application' }, { status: 500 });
@@ -62,23 +111,24 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    const collection = await getCollection('applications');
     
-    // Get application to find jobId
-    const application = await collection.findOne({ id });
+    // Get job_id before deleting
+    const app = await queryOne<Application>(
+      'SELECT job_id FROM applications WHERE id = $1',
+      [id]
+    );
     
-    if (!application) {
+    if (!app) {
       return NextResponse.json({ error: 'Application not found' }, { status: 404 });
     }
     
     // Delete application
-    await collection.deleteOne({ id });
+    await execute('DELETE FROM applications WHERE id = $1', [id]);
     
-    // Decrement job's application count
-    const jobsCollection = await getCollection('jobs');
-    await jobsCollection.updateOne(
-      { id: application.jobId },
-      { $inc: { applicationsCount: -1 } }
+    // Update job applications count
+    await execute(
+      'UPDATE jobs SET applications_count = GREATEST(applications_count - 1, 0) WHERE id = $1',
+      [app.job_id]
     );
     
     return NextResponse.json({ success: true });
