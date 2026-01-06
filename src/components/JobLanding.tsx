@@ -69,13 +69,26 @@ export function JobLanding({ onAdminClick }: JobLandingProps) {
   useEffect(() => {
     async function fetchJobs() {
       try {
-        const response = await fetch('/api/jobs');
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+        
+        const response = await fetch('/api/jobs?status=published', {
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        
         if (response.ok) {
           const data = await response.json();
           setJobs(data);
+        } else {
+          console.error('Failed to fetch jobs:', response.status);
         }
       } catch (error) {
-        console.error('Error fetching jobs:', error);
+        if ((error as Error).name === 'AbortError') {
+          console.error('Request timed out');
+        } else {
+          console.error('Error fetching jobs:', error);
+        }
       } finally {
         setLoading(false);
       }
