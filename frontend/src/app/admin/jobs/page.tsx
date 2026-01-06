@@ -929,10 +929,20 @@ export default function AdminJobsPage() {
                     setShowCreateModal(false);
                     setFormData(initialFormData);
                   }}
-                  className="flex-1 px-4 py-3 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                  className="px-4 py-3 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
                 >
                   Cancel
                 </button>
+                {activeTab === 'jobs' && (
+                  <button
+                    type="button"
+                    onClick={handleSaveAsTemplate}
+                    className="px-4 py-3 border border-indigo-200 text-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors flex items-center gap-2"
+                  >
+                    <FileText className="w-4 h-4" />
+                    Save as Template
+                  </button>
+                )}
                 <button
                   type="submit"
                   disabled={creating}
@@ -947,7 +957,7 @@ export default function AdminJobsPage() {
                   ) : (
                     <>
                       <Plus className="w-4 h-4" />
-                      Create Job
+                      {activeTab === 'templates' ? 'Save Template' : 'Create Job'}
                     </>
                   )}
                 </button>
