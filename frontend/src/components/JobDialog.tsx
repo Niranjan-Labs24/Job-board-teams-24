@@ -41,9 +41,12 @@ const formatDeadline = (deadline?: string) => {
 export function JobDialog({ job, onClose }: JobDialogProps) {
   const [showApplicationForm, setShowApplicationForm] = useState(false);
   
-  const daysUntil = getDaysUntilDeadline(job.applicationDeadline);
-  const approaching = isDeadlineApproaching(job.applicationDeadline);
-  const lastDay = isLastDay(job.applicationDeadline);
+  const deadline = job.application_deadline || job.applicationDeadline;
+  const daysUntil = getDaysUntilDeadline(deadline);
+  const approaching = isDeadlineApproaching(deadline);
+  const lastDay = isLastDay(deadline);
+  const salaryMin = job.salary_min || job.salaryMin;
+  const salaryMax = job.salary_max || job.salaryMax;
 
   if (showApplicationForm) {
     return (
@@ -58,7 +61,7 @@ export function JobDialog({ job, onClose }: JobDialogProps) {
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-6 z-50">
       <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        {job.applicationDeadline && approaching && (
+        {deadline && approaching && (
           <div className={`px-8 py-3 flex items-center gap-2 ${
             lastDay ? 'bg-red-100 text-red-800' : 'bg-amber-100 text-amber-800'
           }`}>
