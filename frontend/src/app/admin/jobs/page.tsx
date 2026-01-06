@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { 
   Briefcase, Users, Plus, Search, Filter, MoreVertical,
   Pause, Play, Archive, Eye, Edit, Trash2, Loader2,
-  LogOut, ChevronRight, Clock, AlertCircle, X
+  LogOut, ChevronRight, Clock, AlertCircle, X, FileText, Copy
 } from 'lucide-react';
 
 interface Job {
@@ -19,6 +19,22 @@ interface Job {
   application_deadline?: string;
   created_at: string;
   color: string;
+}
+
+interface JobTemplate {
+  id: string;
+  name: string;
+  category: string;
+  title: string;
+  type: string;
+  location: string;
+  salary_min: string;
+  salary_max: string;
+  description: string;
+  requirements: string[];
+  responsibilities: string[];
+  benefits: string[];
+  created_at: string;
 }
 
 interface JobFormData {
