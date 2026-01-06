@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Clock, MapPin, Briefcase, DollarSign, AlertCircle, CheckCircle, Send } from 'lucide-react';
+import { ShareButton } from '@/components/ShareButton';
 
 interface Job {
   id: string;
