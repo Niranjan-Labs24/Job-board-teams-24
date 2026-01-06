@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { 
   Briefcase, Users, Plus, Search, Filter, MoreVertical,
   Pause, Play, Archive, Eye, Edit, Trash2, Loader2,
-  LogOut, ChevronRight, Clock, AlertCircle
+  LogOut, ChevronRight, Clock, AlertCircle, X
 } from 'lucide-react';
 
 interface Job {
@@ -21,12 +21,48 @@ interface Job {
   color: string;
 }
 
+interface JobFormData {
+  title: string;
+  type: string;
+  location: string;
+  salary_min: string;
+  salary_max: string;
+  description: string;
+  requirements: string;
+  responsibilities: string;
+  benefits: string;
+  application_deadline: string;
+  category: string;
+  color: string;
+  status: string;
+}
+
 const statusConfig = {
   draft: { label: 'Draft', bg: 'bg-gray-100', text: 'text-gray-700', dot: 'bg-gray-400' },
   published: { label: 'Published', bg: 'bg-green-100', text: 'text-green-700', dot: 'bg-green-500' },
   paused: { label: 'Paused', bg: 'bg-yellow-100', text: 'text-yellow-700', dot: 'bg-yellow-500' },
   closed: { label: 'Closed', bg: 'bg-red-100', text: 'text-red-700', dot: 'bg-red-500' },
   archived: { label: 'Archived', bg: 'bg-gray-100', text: 'text-gray-500', dot: 'bg-gray-400' },
+};
+
+const colorOptions = [
+  '#3B82F6', '#EC4899', '#F97316', '#8B5CF6', '#10B981', '#F59E0B', '#EF4444', '#06B6D4'
+];
+
+const initialFormData: JobFormData = {
+  title: '',
+  type: 'full-time',
+  location: '',
+  salary_min: '',
+  salary_max: '',
+  description: '',
+  requirements: '',
+  responsibilities: '',
+  benefits: '',
+  application_deadline: '',
+  category: '',
+  color: '#3B82F6',
+  status: 'draft',
 };
 
 export default function AdminJobsPage() {
