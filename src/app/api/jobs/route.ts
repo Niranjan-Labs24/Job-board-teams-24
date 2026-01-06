@@ -9,12 +9,18 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status') || undefined;
     const includeArchived = searchParams.get('includeArchived') === 'true';
     
+    console.log('Fetching jobs with:', { status, includeArchived });
+    
     const jobs = await getJobs({ status, includeArchived });
     
-    return NextResponse.json(jobs);
+    console.log('Jobs fetched:', jobs.length);
+    
+    const response = NextResponse.json(jobs);
+    response.headers.set('Cache-Control', 'no-store');
+    return response;
   } catch (error) {
     console.error('Error fetching jobs:', error);
-    return NextResponse.json({ error: 'Failed to fetch jobs' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to fetch jobs', details: String(error) }, { status: 500 });
   }
 }
 
