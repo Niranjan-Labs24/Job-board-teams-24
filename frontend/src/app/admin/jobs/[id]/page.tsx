@@ -299,7 +299,7 @@ export default function JobApplicationsPage() {
                         
                         <div className="flex items-center gap-1 mb-2">
                           {renderStars(app.rating)}
-                          <span className="text-xs text-gray-500 ml-1">{app.rating?.toFixed(1) || '0.0'}</span>
+                          <span className="text-xs text-gray-500 ml-1">{formatRating(app.rating)}</span>
                         </div>
                         
                         <div className="flex items-center gap-2 text-xs text-gray-500">
