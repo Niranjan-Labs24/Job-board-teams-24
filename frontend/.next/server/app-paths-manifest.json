@@ -1,12 +1,1 @@
-{
-  "/page": "app/page.js",
-  "/admin/jobs/page": "app/admin/jobs/page.js",
-  "/admin/jobs/[id]/page": "app/admin/jobs/[id]/page.js",
-  "/api/applications/route": "app/api/applications/route.js",
-  "/api/jobs/[id]/route": "app/api/jobs/[id]/route.js",
-  "/api/health/route": "app/api/health/route.js",
-  "/api/jobs/route": "app/api/jobs/route.js",
-  "/api/applications/[id]/route": "app/api/applications/[id]/route.js",
-  "/careers/page": "app/careers/page.js",
-  "/careers/[slug]/page": "app/careers/[slug]/page.js"
-}
+{}
