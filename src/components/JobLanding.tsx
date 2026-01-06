@@ -65,30 +65,31 @@ export function JobLanding({ onAdminClick }: JobLandingProps) {
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchJobs() {
       try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000);
+        setError(null);
+        const response = await fetch('/api/jobs');
         
-        const response = await fetch('/api/jobs?status=published', {
-          signal: controller.signal
-        });
-        clearTimeout(timeoutId);
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
         
-        if (response.ok) {
-          const data = await response.json();
+        const data = await response.json();
+        
+        if (Array.isArray(data)) {
           setJobs(data);
         } else {
-          console.error('Failed to fetch jobs:', response.status);
+          console.error('Unexpected response format:', data);
+          setJobs([]);
         }
-      } catch (error) {
-        if ((error as Error).name === 'AbortError') {
-          console.error('Request timed out');
-        } else {
-          console.error('Error fetching jobs:', error);
-        }
+      } catch (err) {
+        console.error('Error fetching jobs:', err);
+        setError(String(err));
+        setJobs([]);
       } finally {
         setLoading(false);
       }
