@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { ArrowUpRight, Clock, AlertCircle, Loader2, MapPin, Briefcase, DollarSign } from 'lucide-react';
+import { JobDialog } from '@/components/JobDialog';
 
 interface Job {
   id: string;
@@ -16,6 +17,8 @@ interface Job {
   description: string;
   category?: string;
   application_deadline?: string;
+  requirements: string[];
+  responsibilities: string[];
 }
 
 const getDaysUntilDeadline = (deadline?: string) => {
@@ -41,6 +44,7 @@ export default function CareersPage() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [selectedJob, setSelectedJob] = useState<Job | null>(null);
 
   useEffect(() => {
     async function fetchJobs() {
@@ -48,7 +52,6 @@ export default function CareersPage() {
         const response = await fetch('/api/jobs?status=published');
         if (response.ok) {
           const data = await response.json();
-          // Filter out jobs with passed deadlines
           const activeJobs = data.filter((job: Job) => {
             if (!job.application_deadline) return true;
             const days = getDaysUntilDeadline(job.application_deadline);
@@ -65,7 +68,7 @@ export default function CareersPage() {
     fetchJobs();
   }, []);
 
-  const categories = ['all', ...new Set(jobs.map(j => j.category).filter(Boolean))];
+  const categories = ['all', ...Array.from(new Set(jobs.map(j => j.category).filter(Boolean)))];
   const filteredJobs = categoryFilter === 'all' 
     ? jobs 
     : jobs.filter(j => j.category === categoryFilter);
@@ -73,131 +76,153 @@ export default function CareersPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+        <Loader2 className="w-12 h-12 animate-spin text-indigo-600" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
+    <div className="min-h-screen bg-[#fafafa]">
       {/* Hero Section */}
-      <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white">
-        <div className="max-w-6xl mx-auto px-6 py-20">
-          <h1 className="text-5xl font-bold mb-4">Join Teams 24</h1>
-          <p className="text-xl text-indigo-100 max-w-2xl">
-            Build the future with us. We&apos;re looking for talented individuals who are passionate 
-            about making an impact and pushing boundaries.
-          </p>
-          <div className="mt-8 flex items-center gap-6">
-            <div className="flex items-center gap-2">
-              <Briefcase className="w-5 h-5 text-indigo-200" />
-              <span>{jobs.length} Open Positions</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <MapPin className="w-5 h-5 text-indigo-200" />
-              <span>Remote & On-site</span>
+      <div className="bg-black text-white relative overflow-hidden py-32">
+        <div className="absolute inset-0 opacity-20">
+          <div className="absolute top-0 -left-1/4 w-1/2 h-full bg-indigo-500 rounded-full blur-[120px]" />
+          <div className="bottom-0 -right-1/4 w-1/2 h-full bg-purple-500 rounded-full blur-[120px]" />
+        </div>
+        
+        <div className="max-w-6xl mx-auto px-6 relative z-10">
+          <div className="max-w-3xl">
+            <h1 className="text-6xl md:text-7xl font-black mb-8 tracking-tight leading-tight">
+              Build the next generation <span className="text-gray-500">of software.</span>
+            </h1>
+            <p className="text-xl text-gray-400 font-medium leading-relaxed mb-12">
+              We&apos;re a team of designers, engineers, and visionaries working together 
+              to transform how teams collaborate and build the future. Join us.
+            </p>
+            <div className="flex flex-wrap items-center gap-8">
+              <div className="flex flex-col">
+                <span className="text-4xl font-black text-white">{jobs.length}</span>
+                <span className="text-xs font-black uppercase tracking-widest text-gray-500 mt-1">Open Roles</span>
+              </div>
+              <div className="w-px h-12 bg-gray-800" />
+              <div className="flex flex-col">
+                <span className="text-4xl font-black text-white">100%</span>
+                <span className="text-xs font-black uppercase tracking-widest text-gray-500 mt-1">Remote-first</span>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Category Filter */}
-      {categories.length > 2 && (
-        <div className="max-w-6xl mx-auto px-6 py-6">
-          <div className="flex items-center gap-2 flex-wrap">
-            {categories.map(cat => (
-              <button
-                key={cat}
-                onClick={() => setCategoryFilter(cat)}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                  categoryFilter === cat
-                    ? 'bg-indigo-600 text-white'
-                    : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
-                }`}
-              >
-                {cat === 'all' ? 'All Departments' : cat}
-              </button>
-            ))}
+      {/* Filter Section */}
+      <div className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-gray-100 py-6">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="flex items-center justify-between gap-8">
+            <div className="flex items-center gap-3 overflow-x-auto no-scrollbar pb-2 md:pb-0">
+              {categories.map(cat => (
+                <button
+                  key={cat}
+                  onClick={() => setCategoryFilter(cat as string)}
+                  className={`whitespace-nowrap px-6 py-2.5 rounded-2xl text-sm font-black uppercase tracking-widest transition-all ${
+                    categoryFilter === cat
+                      ? 'bg-black text-white shadow-xl shadow-black/10'
+                      : 'bg-white text-gray-400 hover:text-black hover:bg-gray-50'
+                  }`}
+                >
+                  {cat === 'all' ? 'All Roles' : cat}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
-      )}
+      </div>
 
       {/* Jobs List */}
-      <div className="max-w-6xl mx-auto px-6 py-8">
-        <div className="grid gap-4">
+      <div className="max-w-6xl mx-auto px-6 py-16">
+        <div className="grid gap-6">
           {filteredJobs.map((job) => {
             const daysUntil = getDaysUntilDeadline(job.application_deadline);
             const approaching = isDeadlineApproaching(job.application_deadline);
             const lastDay = isLastDay(job.application_deadline);
 
             return (
-              <Link
+              <div
                 key={job.id}
-                href={`/careers/${job.slug}`}
-                className={`block bg-white rounded-xl border border-gray-200 p-6 hover:shadow-lg hover:border-indigo-200 transition-all group ${
-                  approaching ? 'ring-2 ring-amber-200' : ''
-                }`}
-                data-testid={`job-card-${job.slug}`}
+                className="group relative bg-white rounded-3xl border border-gray-100 p-8 hover:shadow-2xl hover:shadow-black/5 transition-all duration-500 flex flex-col md:flex-row items-start md:items-center justify-between gap-8"
               >
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start gap-4">
-                    <div
-                      className="w-12 h-12 rounded-xl flex-shrink-0"
-                      style={{ backgroundColor: job.color }}
-                    />
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <h2 className="text-xl font-semibold text-gray-900 group-hover:text-indigo-600 transition-colors">
-                          {job.title}
-                        </h2>
-                        {lastDay && (
-                          <span className="px-2 py-0.5 bg-red-100 text-red-700 text-xs font-medium rounded-full flex items-center gap-1">
-                            <AlertCircle className="w-3 h-3" />
-                            Last day!
-                          </span>
-                        )}
-                        {!lastDay && approaching && (
-                          <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-xs font-medium rounded-full flex items-center gap-1">
-                            <Clock className="w-3 h-3" />
-                            Closing soon
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-4 text-gray-600">
-                        <span className="flex items-center gap-1">
-                          <Briefcase className="w-4 h-4" />
-                          {job.type}
+                <Link href={`/careers/${job.slug}`} className="absolute inset-0 z-0" />
+                
+                <div className="flex items-start gap-6 relative z-10 flex-1">
+                  <div
+                    className="w-16 h-16 rounded-2xl flex-shrink-0 flex items-center justify-center text-white text-xl font-black shadow-lg shadow-black/5 transition-transform group-hover:scale-110 duration-500"
+                    style={{ backgroundColor: job.color }}
+                  >
+                    {job.title.charAt(0)}
+                  </div>
+                  <div>
+                    <div className="flex flex-wrap items-center gap-3 mb-2">
+                      <h2 className="text-2xl font-black text-gray-900 tracking-tight transition-colors group-hover:text-indigo-600">
+                        {job.title}
+                      </h2>
+                      {lastDay && (
+                        <span className="px-3 py-1 bg-red-500 text-white text-[10px] font-black uppercase tracking-widest rounded-full animate-pulse">
+                          Last Day
                         </span>
-                        <span className="flex items-center gap-1">
-                          <MapPin className="w-4 h-4" />
-                          {job.location}
+                      )}
+                      {!lastDay && approaching && (
+                        <span className="px-3 py-1 bg-amber-400 text-amber-900 text-[10px] font-black uppercase tracking-widest rounded-full">
+                          Closing Soon
                         </span>
-                        <span className="flex items-center gap-1">
-                          <DollarSign className="w-4 h-4" />
-                          {job.salary_min} - {job.salary_max}
-                        </span>
-                      </div>
-                      {job.application_deadline && (
-                        <p className={`text-sm mt-2 ${lastDay ? 'text-red-600' : approaching ? 'text-amber-600' : 'text-gray-500'}`}>
-                          Apply by {new Date(job.application_deadline).toLocaleDateString('en-US', {
-                            month: 'long',
-                            day: 'numeric',
-                            year: 'numeric'
-                          })}
-                          {daysUntil !== null && daysUntil >= 0 && (
-                            <span className="ml-1">
-                              ({daysUntil === 0 ? 'Today!' : `${daysUntil} days left`})
-                            </span>
-                          )}
-                        </p>
                       )}
                     </div>
-                  </div>
-                  <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center group-hover:bg-indigo-100 transition-colors">
-                    <ArrowUpRight className="w-5 h-5 text-gray-400 group-hover:text-indigo-600 transition-colors" />
+                    
+                    <div className="flex flex-wrap items-center gap-6 text-gray-400 font-bold uppercase tracking-widest text-[10px]">
+                      <span className="flex items-center gap-2">
+                        <Briefcase className="w-3.5 h-3.5" />
+                        {job.type}
+                      </span>
+                      <span className="flex items-center gap-2">
+                        <MapPin className="w-3.5 h-3.5" />
+                        {job.location}
+                      </span>
+                      <span className="flex items-center gap-2">
+                        <DollarSign className="w-3.5 h-3.5" />
+                        ${job.salary_min} - ${job.salary_max}
+                      </span>
+                    </div>
+
+                    {job.application_deadline && (
+                      <p className={`text-[11px] font-bold mt-4 uppercase tracking-widest flex items-center gap-2 ${lastDay ? 'text-red-600' : approaching ? 'text-amber-600' : 'text-gray-400'}`}>
+                        <Clock className="w-3.5 h-3.5" />
+                        Apply by {new Date(job.application_deadline).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric'
+                        })}
+                        {daysUntil !== null && daysUntil >= 0 && (
+                          <span className="opacity-60">
+                            ({daysUntil === 0 ? 'Today' : `${daysUntil}d left`})
+                          </span>
+                        )}
+                      </p>
+                    )}
                   </div>
                 </div>
-              </Link>
+
+                <div className="flex items-center gap-4 w-full md:w-auto relative z-10">
+                  <button
+                    onClick={() => setSelectedJob(job)}
+                    className="flex-1 md:flex-none px-8 py-3 bg-gray-50 text-gray-900 rounded-2xl hover:bg-gray-100 transition-all font-black uppercase tracking-widest text-[11px] text-center"
+                  >
+                    Details
+                  </button>
+                  <Link
+                    href={`/apply/${job.slug}`}
+                    className="flex-1 md:flex-none px-8 py-3 bg-black text-white rounded-2xl hover:bg-gray-800 transition-all font-black uppercase tracking-widest text-[11px] text-center shadow-lg shadow-black/10 active:scale-[0.98]"
+                  >
+                    Apply
+                  </Link>
+                </div>
+              </div>
             );
           })}
         </div>
@@ -246,6 +271,10 @@ export default function CareersPage() {
           </div>
         </div>
       </footer>
+
+      {selectedJob && (
+        <JobDialog job={selectedJob} onClose={() => setSelectedJob(null)} />
+      )}
     </div>
   );
 }

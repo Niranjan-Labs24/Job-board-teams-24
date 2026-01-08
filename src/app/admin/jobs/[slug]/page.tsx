@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { 
   ArrowLeft, Users, Search, Filter, LayoutGrid, Table as TableIcon,
   Star, Mail, FileText, Eye, MoreVertical, ChevronRight, Loader2,
-  CheckSquare, Square, Clock, Edit, ExternalLink
+  CheckSquare, Square, Clock, Edit, ExternalLink, X
 } from 'lucide-react';
 
 interface Job {
@@ -53,7 +53,7 @@ const stages = ['new', 'screening', 'interview_scheduled', 'interview_complete',
 
 export default function JobApplicationsPage() {
   const params = useParams();
-  const id = params.id as string;
+  const slug = params.slug as string;
   const router = useRouter();
   const [job, setJob] = useState<Job | null>(null);
   const [applications, setApplications] = useState<Application[]>([]);
@@ -62,19 +62,24 @@ export default function JobApplicationsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
+  const [selectedApp, setSelectedApp] = useState<Application | null>(null);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isUpdatingRating, setIsUpdatingRating] = useState(false);
 
   useEffect(() => {
     fetchData();
-  }, [id]);
+  }, [slug]);
 
   const fetchData = async () => {
     try {
-      const [jobRes, appsRes] = await Promise.all([
-        fetch(`/api/jobs/${id}`),
-        fetch(`/api/applications?jobId=${id}`),
-      ]);
-      
-      if (jobRes.ok) setJob(await jobRes.json());
+      // First fetch job by slug
+      const jobRes = await fetch(`/api/jobs/${slug}`);
+      if (!jobRes.ok) throw new Error('Failed to fetch job');
+      const jobData = await jobRes.json();
+      setJob(jobData);
+
+      // Then fetch applications using job ID
+      const appsRes = await fetch(`/api/applications?jobId=${jobData.id}`);
       if (appsRes.ok) setApplications(await appsRes.json());
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -94,11 +99,42 @@ export default function JobApplicationsPage() {
         setApplications(prev => prev.map(app => 
           app.id === appId ? { ...app, stage: newStage, status: newStage } : app
         ));
+        if (selectedApp?.id === appId) {
+          setSelectedApp(prev => prev ? { ...prev, stage: newStage, status: newStage } : null);
+        }
       }
     } catch (error) {
       console.error('Error updating stage:', error);
     }
     setActiveMenu(null);
+  };
+
+  const handleRatingChange = async (appId: string, newRating: number) => {
+    setIsUpdatingRating(true);
+    try {
+      const response = await fetch(`/api/applications/${appId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rating: newRating }),
+      });
+      if (response.ok) {
+        setApplications(prev => prev.map(app => 
+          app.id === appId ? { ...app, rating: newRating } : app
+        ));
+        if (selectedApp?.id === appId) {
+          setSelectedApp(prev => prev ? { ...prev, rating: newRating } : null);
+        }
+      }
+    } catch (error) {
+      console.error('Error updating rating:', error);
+    } finally {
+      setIsUpdatingRating(false);
+    }
+  };
+
+  const openDrawer = (app: Application) => {
+    setSelectedApp(app);
+    setIsDrawerOpen(true);
   };
 
   const toggleSelection = (appId: string) => {
@@ -120,14 +156,29 @@ export default function JobApplicationsPage() {
 
   const getAppsByStage = (stage: string) => filteredApps.filter(app => app.stage === stage);
 
-  const renderStars = (rating: number | string | null | undefined) => {
+  const renderStars = (rating: number | string | null | undefined, isInteractive = false, onRate?: (r: number) => void) => {
     const numRating = Number(rating) || 0;
-    return Array.from({ length: 5 }, (_, i) => (
-      <Star
-        key={i}
-        className={`w-3 h-3 ${i < Math.round(numRating) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`}
-      />
-    ));
+    return (
+      <div className="flex items-center gap-1">
+        {Array.from({ length: 5 }, (_, i) => (
+          <button
+            key={i}
+            disabled={!isInteractive || isUpdatingRating}
+            onClick={(e) => {
+              if (isInteractive && onRate) {
+                e.stopPropagation();
+                onRate(i + 1);
+              }
+            }}
+            className={`${isInteractive ? 'cursor-pointer hover:scale-110 transition-transform' : 'cursor-default'}`}
+          >
+            <Star
+              className={`${isInteractive ? 'w-5 h-5' : 'w-3 h-3'} ${i < Math.round(numRating) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`}
+            />
+          </button>
+        ))}
+      </div>
+    );
   };
 
   const formatRating = (rating: number | string | null | undefined): string => {
@@ -260,7 +311,8 @@ export default function JobApplicationsPage() {
                     {getAppsByStage(stage).map(app => (
                       <div
                         key={app.id}
-                        className="bg-white rounded-lg p-4 shadow-sm border border-gray-200 hover:shadow-md transition-shadow cursor-pointer"
+                        onClick={() => openDrawer(app)}
+                        className="bg-white rounded-lg p-4 shadow-sm border border-gray-200 hover:shadow-md transition-shadow cursor-pointer relative group"
                         data-testid={`candidate-card-${app.id}`}
                       >
                         <div className="flex items-start justify-between mb-2">
@@ -362,7 +414,11 @@ export default function JobApplicationsPage() {
               </thead>
               <tbody className="divide-y divide-gray-200">
                 {filteredApps.map(app => (
-                  <tr key={app.id} className="hover:bg-gray-50">
+                  <tr 
+                    key={app.id} 
+                    className="hover:bg-gray-50 cursor-pointer"
+                    onClick={() => openDrawer(app)}
+                  >
                     <td className="px-4 py-3">
                       <input
                         type="checkbox"
@@ -414,11 +470,155 @@ export default function JobApplicationsPage() {
         )}
       </div>
 
+      {/* Applicant Detail Drawer */}
+      <div 
+        className={`fixed inset-0 z-50 transition-opacity duration-300 ${isDrawerOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+      >
+        <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={() => setIsDrawerOpen(false)} />
+        <div 
+          className={`absolute right-0 top-0 h-full w-full max-w-lg bg-white shadow-2xl transition-transform duration-300 transform ${isDrawerOpen ? 'translate-x-0' : 'translate-x-full'} flex flex-col`}
+        >
+          {selectedApp && (
+            <>
+              <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+                <h2 className="text-xl font-bold text-gray-900">Applicant Details</h2>
+                <button 
+                  onClick={() => setIsDrawerOpen(false)}
+                  className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                >
+                  <X className="w-6 h-6 text-gray-500" />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-8 space-y-8">
+                {/* Profile Header */}
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-2xl font-bold">
+                    {selectedApp.name.charAt(0)}
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold text-gray-900">{selectedApp.name}</h3>
+                    <p className="text-gray-500">{selectedApp.email}</p>
+                  </div>
+                </div>
+
+                {/* Rating Section */}
+                <div className="bg-gray-50 rounded-2xl p-6">
+                  <h4 className="text-sm font-semibold text-gray-500 uppercase mb-4 tracking-wider text-center">Current Rating</h4>
+                  <div className="flex flex-col items-center gap-3">
+                    {renderStars(selectedApp.rating, true, (r) => handleRatingChange(selectedApp.id, r))}
+                    <p className="text-3xl font-bold text-gray-900">{formatRating(selectedApp.rating)}</p>
+                    {isUpdatingRating && <span className="text-xs text-indigo-600 animate-pulse">Updating...</span>}
+                  </div>
+                </div>
+
+                {/* Status Section */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Applied on</p>
+                    <p className="text-gray-900 font-medium">{new Date(selectedApp.applied_at).toLocaleDateString()}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Current Stage</p>
+                    <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${stageConfig[selectedApp.stage]?.bg} ${stageConfig[selectedApp.stage]?.text}`}>
+                      {stageConfig[selectedApp.stage]?.label}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Contact & Links */}
+                <div className="space-y-4 pt-4 border-t border-gray-100">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                      <Mail className="w-5 h-5 text-gray-600" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Email</p>
+                      <a href={`mailto:${selectedApp.email}`} className="text-indigo-600 hover:underline font-medium">{selectedApp.email}</a>
+                    </div>
+                  </div>
+                  {selectedApp.phone && (
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                        <Users className="w-5 h-5 text-gray-600" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">Phone</p>
+                        <p className="text-gray-900 font-medium">{selectedApp.phone}</p>
+                      </div>
+                    </div>
+                  )}
+                  {selectedApp.linkedin && (
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
+                        <ExternalLink className="w-5 h-5 text-blue-600" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">LinkedIn</p>
+                        <a href={selectedApp.linkedin} target="_blank" className="text-blue-600 hover:underline font-medium">View Profile</a>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Documents */}
+                <div className="space-y-4 pt-4 border-t border-gray-100">
+                  <h4 className="text-lg font-bold text-gray-900">Documents</h4>
+                  {selectedApp.resume_url ? (
+                    <div className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-red-50 rounded-lg flex items-center justify-center">
+                          <FileText className="w-5 h-5 text-red-600" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-900">Resume.pdf</p>
+                          <p className="text-xs text-gray-500">Click to download</p>
+                        </div>
+                      </div>
+                      <a 
+                        href={selectedApp.resume_url}
+                        download
+                        target="_blank"
+                        className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-indigo-600"
+                        title="Download Resume"
+                      >
+                        <ExternalLink className="w-5 h-5" />
+                      </a>
+                    </div>
+                  ) : (
+                    <p className="text-gray-500 italic">No resume uploaded</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="p-6 border-t border-gray-100 bg-gray-50">
+                <div className="flex gap-3">
+                  <button 
+                    onClick={() => setActiveMenu(selectedApp.id)}
+                    className="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-bold hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200"
+                  >
+                    Update Stage
+                  </button>
+                  <button 
+                    onClick={() => setIsDrawerOpen(false)}
+                    className="px-6 py-3 border border-gray-200 text-gray-700 rounded-xl font-bold hover:bg-white transition-colors"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
       {/* Click outside to close menu */}
-      {activeMenu && (
+      {(activeMenu || isDrawerOpen) && (
         <div 
           className="fixed inset-0 z-40" 
-          onClick={() => setActiveMenu(null)}
+          onClick={() => {
+            setActiveMenu(null);
+          }}
         />
       )}
     </div>

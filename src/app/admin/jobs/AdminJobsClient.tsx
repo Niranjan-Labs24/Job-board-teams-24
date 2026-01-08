@@ -470,7 +470,7 @@ export default function AdminJobsClient({ initialJobs, initialTemplates, serverE
                   <tr
                     key={job.id}
                     className="hover:bg-gray-50 cursor-pointer"
-                    onClick={() => router.push(`/admin/jobs/${job.id}`)}
+                    onClick={() => router.push(`/admin/jobs/${job.slug}`)}
                     data-testid={`job-row-${job.id}`}
                   >
                     <td className="px-6 py-4">
@@ -532,7 +532,7 @@ export default function AdminJobsClient({ initialJobs, initialTemplates, serverE
                         {activeMenu === job.id && (
                           <div className="absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
                             <button
-                              onClick={() => router.push(`/admin/jobs/${job.id}`)}
+                              onClick={() => router.push(`/admin/jobs/${job.slug}`)}
                               className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
                             >
                               <Eye className="w-4 h-4" />

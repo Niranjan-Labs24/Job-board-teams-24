@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ArrowUpRight, Lock, Clock, AlertCircle, Loader2 } from 'lucide-react';
+import Link from 'next/link';
+import { ArrowUpRight, Lock, Clock, AlertCircle, Loader2, Briefcase, MapPin, DollarSign } from 'lucide-react';
 import { JobDialog } from './JobDialog';
 
 export interface Job {
@@ -62,10 +63,10 @@ const formatDeadline = (deadline?: string) => {
 };
 
 export function JobLanding({ onAdminClick }: JobLandingProps) {
-  const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedJob, setSelectedJob] = useState<Job | null>(null);
 
   useEffect(() => {
     async function fetchJobs() {
@@ -107,35 +108,31 @@ export function JobLanding({ onAdminClick }: JobLandingProps) {
   if (loading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+        <Loader2 className="w-12 h-12 animate-spin text-indigo-600" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-white">
-      <div className="max-w-4xl mx-auto px-6 py-12">
-        <div className="flex justify-between items-center mb-2">
-          <h2 className="text-gray-600">Teams 24 Careers</h2>
+    <div className="min-h-screen bg-[#fafafa]">
+      <div className="max-w-6xl mx-auto px-6 py-24">
+        <div className="flex justify-between items-center mb-4">
+          <div className="flex flex-col">
+            <h2 className="text-xs font-black uppercase tracking-[0.3em] text-indigo-600 mb-2">Teams 24 Opportunities</h2>
+            <h1 className="text-5xl font-black text-gray-900 tracking-tight">Open positions</h1>
+          </div>
           <button
             onClick={onAdminClick}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-3 hover:bg-white hover:shadow-xl hover:shadow-black/5 rounded-2xl transition-all"
             title="Admin Login"
           >
             <Lock className="w-5 h-5 text-gray-400" />
           </button>
         </div>
         
-        <div className="h-px bg-gray-200 mb-12" />
+        <div className="h-px bg-gray-100 mt-8 mb-16" />
 
-        <div className="flex justify-between items-center mb-12">
-          <h1>Open positions</h1>
-          <button className="bg-black text-white px-6 py-3 rounded-lg hover:bg-gray-800 transition-colors">
-            View all openings
-          </button>
-        </div>
-
-        <div className="space-y-6">
+        <div className="grid gap-6">
           {activeJobs.map((job) => {
             const deadline = job.application_deadline || job.applicationDeadline;
             const daysUntil = getDaysUntilDeadline(deadline);
@@ -147,78 +144,106 @@ export function JobLanding({ onAdminClick }: JobLandingProps) {
             return (
               <div
                 key={job.id}
-                onClick={() => setSelectedJob(job)}
-                className={`flex items-center gap-4 py-6 border-b border-gray-200 cursor-pointer hover:bg-gray-50 -mx-6 px-6 transition-colors ${
-                  approaching ? 'bg-amber-50/50 hover:bg-amber-50' : ''
-                }`}
-                data-testid={`job-card-${job.id}`}
+                className="group relative bg-white rounded-3xl border border-gray-100 p-8 hover:shadow-2xl hover:shadow-black/5 transition-all duration-500 flex flex-col md:flex-row items-start md:items-center justify-between gap-8"
               >
-                <div
-                  className="w-10 h-10 rounded-full flex-shrink-0"
-                  style={{ backgroundColor: job.color }}
+                <div 
+                  onClick={() => setSelectedJob(job)}
+                  className="absolute inset-0 z-0 cursor-pointer" 
                 />
-
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <h3>{job.title}</h3>
-                    {lastDay && (
-                      <span className="px-2 py-0.5 bg-red-100 text-red-700 text-xs font-medium rounded-full flex items-center gap-1">
-                        <AlertCircle className="w-3 h-3" />
-                        Last day to apply!
-                      </span>
-                    )}
-                    {!lastDay && approaching && (
-                      <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-xs font-medium rounded-full flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
-                        Closing soon
-                      </span>
-                    )}
+                
+                <div className="flex items-start gap-6 relative z-10 flex-1">
+                  <div
+                    className="w-16 h-16 rounded-2xl flex-shrink-0 flex items-center justify-center text-white text-xl font-black shadow-lg shadow-black/5 transition-transform group-hover:scale-110 duration-500"
+                    style={{ backgroundColor: job.color }}
+                  >
+                    {job.title.charAt(0)}
                   </div>
-                  <p className="text-gray-600">
-                    {job.type} • ${salaryMin} - ${salaryMax} • {job.location}
-                  </p>
-                  {deadline && (
-                    <p className={`text-sm mt-1 flex items-center gap-1 ${
-                      lastDay ? 'text-red-600 font-medium' : 
-                      approaching ? 'text-amber-600' : 'text-gray-500'
-                    }`}>
-                      <Clock className="w-3 h-3" />
-                      Apply by {formatDeadline(deadline)}
-                      {daysUntil !== null && daysUntil > 0 && daysUntil <= 7 && (
-                        <span className="ml-1">
-                          ({daysUntil} day{daysUntil !== 1 ? 's' : ''} left)
+                  <div>
+                    <div className="flex flex-wrap items-center gap-3 mb-2">
+                      <h3 className="text-2xl font-black text-gray-900 tracking-tight transition-colors group-hover:text-indigo-600">
+                        {job.title}
+                      </h3>
+                      {lastDay && (
+                        <span className="px-3 py-1 bg-red-500 text-white text-[10px] font-black uppercase tracking-widest rounded-full animate-pulse">
+                          Last Day
                         </span>
                       )}
-                    </p>
-                  )}
+                      {!lastDay && approaching && (
+                        <span className="px-3 py-1 bg-amber-400 text-amber-900 text-[10px] font-black uppercase tracking-widest rounded-full">
+                          Closing Soon
+                        </span>
+                      )}
+                    </div>
+                    
+                    <div className="flex flex-wrap items-center gap-6 text-gray-400 font-bold uppercase tracking-widest text-[10px]">
+                      <span className="flex items-center gap-2">
+                        <Briefcase className="w-3.5 h-3.5" />
+                        {job.type}
+                      </span>
+                      <span className="flex items-center gap-2">
+                        <MapPin className="w-3.5 h-3.5" />
+                        {job.location}
+                      </span>
+                      <span className="flex items-center gap-2">
+                        <DollarSign className="w-3.5 h-3.5" />
+                        ${salaryMin} - ${salaryMax}
+                      </span>
+                    </div>
+
+                    {deadline && (
+                      <p className={`text-[11px] font-bold mt-4 uppercase tracking-widest flex items-center gap-2 ${
+                        lastDay ? 'text-red-600' : 
+                        approaching ? 'text-amber-600' : 'text-gray-400'
+                      }`}>
+                        <Clock className="w-3.5 h-3.5" />
+                        Apply by {formatDeadline(deadline)}
+                        {daysUntil !== null && daysUntil > 0 && daysUntil <= 7 && (
+                          <span className="opacity-60">
+                            ({daysUntil}d left)
+                          </span>
+                        )}
+                      </p>
+                    )}
+                  </div>
                 </div>
 
-                <div className="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center flex-shrink-0">
-                  <ArrowUpRight className="w-5 h-5 text-white" />
+                <div className="flex items-center gap-4 w-full md:w-auto relative z-10">
+                  <button
+                    onClick={() => setSelectedJob(job)}
+                    className="flex-1 md:flex-none px-8 py-3 bg-gray-50 text-gray-900 rounded-2xl hover:bg-gray-100 transition-all font-black uppercase tracking-widest text-[11px] text-center"
+                  >
+                    Details
+                  </button>
+                  <Link
+                    href={`/apply/${job.slug}`}
+                    className="flex-1 md:flex-none px-8 py-3 bg-black text-white rounded-2xl hover:bg-gray-800 transition-all font-black uppercase tracking-widest text-[11px] text-center shadow-lg shadow-black/10 active:scale-[0.98]"
+                  >
+                    Apply
+                  </Link>
                 </div>
               </div>
             );
           })}
-          
-          {activeJobs.length === 0 && !error && (
-            <div className="py-12 text-center text-gray-500">
-              No open positions at the moment. Check back soon!
-            </div>
-          )}
-          
-          {error && (
-            <div className="py-12 text-center">
-              <p className="text-red-500 mb-2">Unable to load positions</p>
-              <p className="text-gray-400 text-sm">{error}</p>
-              <button 
-                onClick={() => window.location.reload()} 
-                className="mt-4 px-4 py-2 bg-gray-100 rounded hover:bg-gray-200"
-              >
-                Retry
-              </button>
-            </div>
-          )}
         </div>
+        
+        {activeJobs.length === 0 && !error && (
+          <div className="py-12 text-center text-gray-500 text-lg font-medium">
+            No open positions at the moment. Check back soon!
+          </div>
+        )}
+        
+        {error && (
+          <div className="py-12 text-center bg-red-50 rounded-3xl border border-red-100 p-12">
+            <p className="text-red-600 font-black uppercase tracking-widest text-xs mb-4">Unable to load positions</p>
+            <p className="text-gray-500 font-medium mb-8 max-w-sm mx-auto">{error}</p>
+            <button 
+              onClick={() => window.location.reload()} 
+              className="px-8 py-4 bg-black text-white rounded-2xl hover:bg-gray-800 transition-all font-black uppercase tracking-widest text-xs shadow-xl shadow-black/10"
+            >
+              Try Again
+            </button>
+          </div>
+        )}
       </div>
 
       {selectedJob && (
