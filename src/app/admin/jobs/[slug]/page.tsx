@@ -65,6 +65,9 @@ export default function JobApplicationsPage() {
   const [selectedApp, setSelectedApp] = useState<Application | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isUpdatingRating, setIsUpdatingRating] = useState(false);
+  const [isUpdatingStage, setIsUpdatingStage] = useState<string | null>(null);
+  const [isChangingStage, setIsChangingStage] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -89,6 +92,7 @@ export default function JobApplicationsPage() {
   };
 
   const handleStageChange = async (appId: string, newStage: string) => {
+    setIsUpdatingStage(appId);
     try {
       const response = await fetch(`/api/applications/${appId}`, {
         method: 'PUT',
@@ -105,8 +109,10 @@ export default function JobApplicationsPage() {
       }
     } catch (error) {
       console.error('Error updating stage:', error);
+    } finally {
+      setIsUpdatingStage(null);
+      setActiveMenu(null);
     }
-    setActiveMenu(null);
   };
 
   const handleRatingChange = async (appId: string, newRating: number) => {
@@ -135,6 +141,7 @@ export default function JobApplicationsPage() {
   const openDrawer = (app: Application) => {
     setSelectedApp(app);
     setIsDrawerOpen(true);
+    setIsChangingStage(false);
   };
 
   const toggleSelection = (appId: string) => {
@@ -210,10 +217,14 @@ export default function JobApplicationsPage() {
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-4">
               <button
-                onClick={() => router.push('/admin/jobs')}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                onClick={() => {
+                  setIsNavigating(true);
+                  router.push('/admin/jobs');
+                }}
+                disabled={isNavigating}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors flex items-center justify-center"
               >
-                <ArrowLeft className="w-5 h-5" />
+                {isNavigating ? <Loader2 className="w-5 h-5 animate-spin" /> : <ArrowLeft className="w-5 h-5" />}
               </button>
               <div className="flex items-center gap-3">
                 <div
@@ -255,18 +266,24 @@ export default function JobApplicationsPage() {
       </header>
 
       {/* Stats Bar */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-6 py-3">
-          <div className="flex items-center gap-6">
-            <div className="flex items-center gap-2">
-              <Users className="w-4 h-4 text-gray-400" />
-              <span className="font-medium">{applications.length}</span>
-              <span className="text-gray-500">Total Candidates</span>
+      <div className="bg-white/80 backdrop-blur-md border-b border-gray-100 sticky top-[73px] z-30">
+        <div className="max-w-7xl mx-auto px-6 py-4">
+          <div className="flex items-center gap-8 overflow-x-auto no-scrollbar">
+            <div className="flex items-center gap-3 bg-indigo-50 px-4 py-2 rounded-2xl">
+              <Users className="w-5 h-5 text-indigo-600" />
+              <div className="flex flex-col">
+                <span className="text-lg font-bold text-indigo-900 leading-none">{applications.length}</span>
+                <span className="text-[10px] text-indigo-600 uppercase font-bold tracking-wider">Candidates</span>
+              </div>
             </div>
-            {stages.slice(0, 4).map(stage => (
-              <div key={stage} className="flex items-center gap-2">
-                <span className={`w-2 h-2 rounded-full ${stageConfig[stage]?.bg.replace('bg-', 'bg-').replace('-100', '-500')}`} />
-                <span className="text-sm text-gray-600">{stageConfig[stage]?.label}: {getAppsByStage(stage).length}</span>
+            <div className="h-8 w-px bg-gray-100" />
+            {stages.slice(0, 5).map(stage => (
+              <div key={stage} className="flex flex-col gap-1 min-w-fit">
+                <div className="flex items-center gap-2">
+                  <span className={`w-2.5 h-2.5 rounded-full ring-4 ring-white shadow-sm ${stageConfig[stage]?.bg.replace('bg-', 'bg-').replace('-100', '-500')}`} />
+                  <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">{stageConfig[stage]?.label}</span>
+                </div>
+                <span className="text-sm font-bold text-gray-900 pl-4">{getAppsByStage(stage).length}</span>
               </div>
             ))}
           </div>
@@ -274,16 +291,16 @@ export default function JobApplicationsPage() {
       </div>
 
       {/* Search and Filters */}
-      <div className="max-w-7xl mx-auto px-6 py-4">
+      <div className="max-w-7xl mx-auto px-6 py-6">
         <div className="flex items-center gap-4">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <div className="relative flex-1 max-w-md group">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-indigo-500 transition-colors" />
             <input
               type="text"
               placeholder="Search candidates..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
               data-testid="search-candidates-input"
             />
           </div>
@@ -294,31 +311,53 @@ export default function JobApplicationsPage() {
       <div className="max-w-7xl mx-auto px-6 pb-6">
         {viewMode === 'kanban' ? (
           /* Kanban View */
-          <div className="flex gap-4 overflow-x-auto pb-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 pb-4">
             {stages.map(stage => (
-              <div key={stage} className="flex-shrink-0 w-80">
-                <div className="bg-gray-100 rounded-xl p-3">
+              <div 
+                key={stage} 
+                className="flex flex-col"
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  e.currentTarget.classList.add('bg-gray-200');
+                }}
+                onDragLeave={(e) => {
+                  e.currentTarget.classList.remove('bg-gray-200');
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  e.currentTarget.classList.remove('bg-gray-200');
+                  const appId = e.dataTransfer.getData('applicationId');
+                  if (appId) {
+                    handleStageChange(appId, stage);
+                  }
+                }}
+              >
+                <div className="bg-gray-100 rounded-xl p-3 flex-1 flex flex-col transition-colors duration-200 min-h-[500px]">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
-                      <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${stageConfig[stage]?.bg} ${stageConfig[stage]?.text}`}>
+                      <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-tight ${stageConfig[stage]?.bg} ${stageConfig[stage]?.text}`}>
                         {stageConfig[stage]?.label}
                       </span>
-                      <span className="text-sm text-gray-500">{getAppsByStage(stage).length}</span>
+                      <span className="text-xs text-gray-400 font-bold">{getAppsByStage(stage).length}</span>
                     </div>
                   </div>
                   
-                  <div className="space-y-3">
+                  <div className="space-y-3 flex-1">
                     {getAppsByStage(stage).map(app => (
                       <div
                         key={app.id}
+                        draggable
+                        onDragStart={(e) => {
+                          e.dataTransfer.setData('applicationId', app.id);
+                        }}
                         onClick={() => openDrawer(app)}
-                        className="bg-white rounded-lg p-4 shadow-sm border border-gray-200 hover:shadow-md transition-shadow cursor-pointer relative group"
+                        className="bg-white rounded-2xl p-4 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.1)] border border-gray-100 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:-translate-y-1 transition-all duration-300 cursor-pointer relative group"
                         data-testid={`candidate-card-${app.id}`}
                       >
                         <div className="flex items-start justify-between mb-2">
-                          <div>
-                            <h3 className="font-medium text-gray-900">{app.name}</h3>
-                            <p className="text-sm text-gray-500">{app.email}</p>
+                          <div className="min-w-0">
+                            <h3 className="font-semibold text-gray-900 text-sm truncate">{app.name}</h3>
+                            <p className="text-[11px] text-gray-500 truncate">{app.email}</p>
                           </div>
                           <div className="relative">
                             <button
@@ -328,19 +367,27 @@ export default function JobApplicationsPage() {
                               }}
                               className="p-1 hover:bg-gray-100 rounded transition-colors"
                             >
-                              <MoreVertical className="w-4 h-4 text-gray-400" />
+                              <MoreVertical className="w-3.5 h-3.5 text-gray-400" />
                             </button>
                             
                             {activeMenu === app.id && (
-                              <div className="absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
-                                <div className="px-3 py-2 text-xs text-gray-500 uppercase">Move to</div>
+                              <div className="absolute right-0 mt-1 w-40 bg-white rounded-lg shadow-xl border border-gray-200 py-1 z-50">
+                                <div className="px-3 py-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-widest bg-gray-50/50">Move to</div>
                                 {stages.filter(s => s !== stage).map(s => (
                                   <button
                                     key={s}
-                                    onClick={() => handleStageChange(app.id, s)}
-                                    className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleStageChange(app.id, s);
+                                    }}
+                                    disabled={isUpdatingStage === app.id}
+                                    className="w-full px-3 py-1.5 text-left text-xs hover:bg-indigo-50 hover:text-indigo-600 flex items-center gap-2 group/item disabled:opacity-50"
                                   >
-                                    <ChevronRight className="w-3 h-3" />
+                                    {isUpdatingStage === app.id ? (
+                                      <Loader2 className="w-2.5 h-2.5 animate-spin" />
+                                    ) : (
+                                      <ChevronRight className="w-2.5 h-2.5 text-gray-300 group-hover/item:text-indigo-600" />
+                                    )}
                                     {stageConfig[s]?.label}
                                   </button>
                                 ))}
@@ -351,11 +398,10 @@ export default function JobApplicationsPage() {
                         
                         <div className="flex items-center gap-1 mb-2">
                           {renderStars(app.rating)}
-                          <span className="text-xs text-gray-500 ml-1">{formatRating(app.rating)}</span>
                         </div>
                         
-                        <div className="flex items-center gap-2 text-xs text-gray-500">
-                          <Clock className="w-3 h-3" />
+                        <div className="flex items-center gap-2 text-[10px] text-gray-400 font-medium">
+                          <Clock className="w-2.5 h-2.5" />
                           <span>Applied {new Date(app.applied_at).toLocaleDateString()}</span>
                         </div>
                         
@@ -412,12 +458,11 @@ export default function JobApplicationsPage() {
                   <th className="text-right px-4 py-3 text-xs font-medium text-gray-500 uppercase">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
+              <tbody className="divide-y divide-gray-100">
                 {filteredApps.map(app => (
                   <tr 
                     key={app.id} 
-                    className="hover:bg-gray-50 cursor-pointer"
-                    onClick={() => openDrawer(app)}
+                    className="hover:bg-indigo-50/30 transition-colors group"
                   >
                     <td className="px-4 py-3">
                       <input
@@ -435,7 +480,7 @@ export default function JobApplicationsPage() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1">
-                        {renderStars(app.rating)}
+                        {renderStars(app.rating, true, (r) => handleRatingChange(app.id, r))}
                       </div>
                     </td>
                     <td className="px-4 py-3">
@@ -448,11 +493,59 @@ export default function JobApplicationsPage() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-2">
-                        <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                          <Eye className="w-4 h-4 text-gray-500" />
+                        <div className="relative">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setActiveMenu(activeMenu === 'table-' + app.id ? null : 'table-' + app.id);
+                            }}
+                            className="p-2 hover:bg-gray-100 rounded-lg transition-colors group"
+                            title="Move Stage"
+                          >
+                            <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-tight transition-all cursor-pointer ${stageConfig[app.stage]?.bg} ${stageConfig[app.stage]?.text} hover:ring-2 hover:ring-indigo-500/20`}>
+                              {stageConfig[app.stage]?.label || app.stage}
+                            </span>
+                          </button>
+                          
+                          {activeMenu === 'table-' + app.id && (
+                            <div className="absolute right-0 mt-1 w-44 bg-white rounded-xl shadow-2xl border border-gray-100 py-1.5 z-50 text-left animate-in fade-in zoom-in-95 duration-200">
+                              <div className="px-3 py-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-widest bg-gray-50/50 mb-1">Move to</div>
+                              {stages.filter(s => s !== app.stage).map(s => (
+                                <button
+                                  key={s}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleStageChange(app.id, s);
+                                  }}
+                                  disabled={isUpdatingStage === app.id}
+                                  className="w-full px-3 py-2 text-left text-xs hover:bg-indigo-50 hover:text-indigo-600 flex items-center justify-between group/item disabled:opacity-50"
+                                >
+                                  <span className="font-semibold">{stageConfig[s]?.label}</span>
+                                  {isUpdatingStage === app.id ? (
+                                    <Loader2 className="w-3 h-3 animate-spin text-indigo-500" />
+                                  ) : (
+                                    <ChevronRight className="w-3 h-3 text-gray-300 group-hover/item:text-indigo-600 transition-transform group-hover/item:translate-x-0.5" />
+                                  )}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openDrawer(app);
+                          }}
+                          className="p-2 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg transition-all active:scale-90" 
+                          title="View Details"
+                        >
+                          <Eye className="w-4 h-4" />
                         </button>
-                        <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                          <Mail className="w-4 h-4 text-gray-500" />
+                        <button 
+                          className="p-2 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg transition-all active:scale-90" 
+                          title="Send Email"
+                        >
+                          <Mail className="w-4 h-4" />
                         </button>
                       </div>
                     </td>
@@ -480,17 +573,17 @@ export default function JobApplicationsPage() {
         >
           {selectedApp && (
             <>
-              <div className="p-6 border-b border-gray-100 flex items-center justify-between">
-                <h2 className="text-xl font-bold text-gray-900">Applicant Details</h2>
+              <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-white sticky top-0 z-10">
+                <h2 className="text-xl font-bold text-gray-900 tracking-tight">Applicant Details</h2>
                 <button 
                   onClick={() => setIsDrawerOpen(false)}
-                  className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                  className="p-2 hover:bg-gray-100 rounded-full transition-all hover:rotate-90"
                 >
-                  <X className="w-6 h-6 text-gray-500" />
+                  <X className="w-6 h-6 text-gray-400" />
                 </button>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-8 space-y-8">
+              <div className="flex-1 overflow-y-auto p-8 space-y-8 bg-slate-50/50">
                 {/* Profile Header */}
                 <div className="flex items-center gap-4">
                   <div className="w-16 h-16 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-2xl font-bold">
@@ -591,21 +684,53 @@ export default function JobApplicationsPage() {
                 </div>
               </div>
 
-              <div className="p-6 border-t border-gray-100 bg-gray-50">
-                <div className="flex gap-3">
-                  <button 
-                    onClick={() => setActiveMenu(selectedApp.id)}
-                    className="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-bold hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200"
-                  >
-                    Update Stage
-                  </button>
-                  <button 
-                    onClick={() => setIsDrawerOpen(false)}
-                    className="px-6 py-3 border border-gray-200 text-gray-700 rounded-xl font-bold hover:bg-white transition-colors"
-                  >
-                    Close
-                  </button>
-                </div>
+              <div className="p-6 border-t border-gray-100 bg-white sticky bottom-0">
+                {isChangingStage ? (
+                  <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                    <h4 className="text-sm font-bold text-gray-900 px-1">Select New Stage</h4>
+                    <div className="grid grid-cols-2 gap-2">
+                      {stages.map(s => (
+                        <button
+                          key={s}
+                          onClick={() => {
+                            handleStageChange(selectedApp.id, s);
+                            setIsChangingStage(false);
+                          }}
+                          disabled={isUpdatingStage === selectedApp.id}
+                          className={`px-4 py-3 rounded-xl text-xs font-bold transition-all border-2 text-left flex flex-col gap-1 ${
+                            selectedApp.stage === s 
+                              ? 'border-indigo-600 bg-indigo-50 text-indigo-700' 
+                              : 'border-transparent bg-gray-50 text-gray-600 hover:border-gray-200 hover:bg-gray-100'
+                          }`}
+                        >
+                          <span className="uppercase tracking-wider">{stageConfig[s]?.label}</span>
+                          <span className="text-[10px] opacity-70 font-medium">Click to update</span>
+                        </button>
+                      ))}
+                    </div>
+                    <button 
+                      onClick={() => setIsChangingStage(false)}
+                      className="w-full py-2 text-xs font-bold text-gray-400 hover:text-gray-600 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex gap-3">
+                    <button 
+                      onClick={() => setIsChangingStage(true)}
+                      className="flex-1 bg-indigo-600 text-white py-3.5 rounded-2xl font-bold hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-200 active:scale-[0.98]"
+                    >
+                      Update Stage
+                    </button>
+                    <button 
+                      onClick={() => setIsDrawerOpen(false)}
+                      className="px-6 py-3.5 border border-gray-200 text-gray-600 rounded-2xl font-bold hover:bg-gray-50 transition-all active:scale-[0.98]"
+                    >
+                      Close
+                    </button>
+                  </div>
+                )}
               </div>
             </>
           )}

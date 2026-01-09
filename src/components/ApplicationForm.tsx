@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { X, ArrowLeft, Upload } from "lucide-react";
+import { X, ArrowLeft, Upload, Loader2 } from "lucide-react";
 import { createClient } from "@supabase/supabase-js";
 import { Job } from "./JobLanding";
 
@@ -34,6 +34,7 @@ export function ApplicationForm({
   const [resume, setResume] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(false);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -156,17 +157,36 @@ export function ApplicationForm({
       </p>
       {onClose ? (
         <button
-          onClick={onClose}
-          className="w-full bg-black text-white py-4 rounded-xl hover:bg-gray-800 transition-all font-bold"
+          onClick={() => {
+            setIsNavigating(true);
+            onClose?.();
+          }}
+          disabled={isNavigating}
+          className="w-full bg-black text-white py-4 rounded-xl hover:bg-gray-800 transition-all font-bold flex items-center justify-center gap-2"
         >
-          Close
+          {isNavigating ? (
+            <>
+              <Loader2 className="w-5 h-5 animate-spin" />
+              Closing...
+            </>
+          ) : (
+            "Close"
+          )}
         </button>
       ) : isStandalone ? (
         <a
           href="/careers"
-          className="inline-block w-full bg-black text-white py-4 rounded-xl hover:bg-gray-800 transition-all font-bold text-center"
+          onClick={() => setIsNavigating(true)}
+          className={`inline-block w-full bg-black text-white py-4 rounded-xl hover:bg-gray-800 transition-all font-bold text-center flex items-center justify-center gap-2 ${isNavigating ? 'opacity-70 cursor-not-allowed' : ''}`}
         >
-          Back to Careers
+          {isNavigating ? (
+            <>
+              <Loader2 className="w-5 h-5 animate-spin" />
+              Loading...
+            </>
+          ) : (
+            "Back to Careers"
+          )}
         </a>
       ) : null}
     </div>
@@ -194,10 +214,14 @@ export function ApplicationForm({
         <div className="flex items-center gap-4">
           {onBack && (
             <button
-              onClick={onBack}
-              className="p-2 hover:bg-gray-100 rounded-xl transition-colors"
+              onClick={() => {
+                setIsNavigating(true);
+                onBack?.();
+              }}
+              disabled={isNavigating}
+              className="p-2 hover:bg-gray-100 rounded-xl transition-colors flex items-center justify-center"
             >
-              <ArrowLeft className="w-5 h-5" />
+              {isNavigating ? <Loader2 className="w-5 h-5 animate-spin" /> : <ArrowLeft className="w-5 h-5" />}
             </button>
           )}
           <div>

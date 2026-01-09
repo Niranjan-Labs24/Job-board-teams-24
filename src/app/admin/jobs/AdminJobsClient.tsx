@@ -99,6 +99,8 @@ export default function AdminJobsClient({ initialJobs, initialTemplates, serverE
   const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [formData, setFormData] = useState<JobFormData>(initialFormData);
   const [creating, setCreating] = useState(false);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState<string | null>(null);
+  const [isTemplateAction, setIsTemplateAction] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'jobs' | 'templates'>('jobs');
   const [error, setError] = useState<string | null>(serverError);
 
@@ -169,6 +171,7 @@ export default function AdminJobsClient({ initialJobs, initialTemplates, serverE
   };
 
   const handleSaveAsTemplate = async () => {
+    setIsTemplateAction('save');
     try {
       const response = await fetch('/api/templates', {
         method: 'POST',
@@ -194,6 +197,8 @@ export default function AdminJobsClient({ initialJobs, initialTemplates, serverE
       }
     } catch (error) {
       console.error('Error saving template:', error);
+    } finally {
+      setIsTemplateAction(null);
     }
   };
 
@@ -219,6 +224,7 @@ export default function AdminJobsClient({ initialJobs, initialTemplates, serverE
 
   const handleDeleteTemplate = async (templateId: string) => {
     if (!confirm('Are you sure you want to delete this template?')) return;
+    setIsTemplateAction(templateId);
     
     try {
       const response = await fetch(`/api/templates/${templateId}`, { method: 'DELETE' });
@@ -227,10 +233,13 @@ export default function AdminJobsClient({ initialJobs, initialTemplates, serverE
       }
     } catch (error) {
       console.error('Error deleting template:', error);
+    } finally {
+      setIsTemplateAction(null);
     }
   };
 
   const handleStatusChange = async (jobId: string, newStatus: string) => {
+    setIsUpdatingStatus(jobId);
     try {
       const response = await fetch(`/api/jobs/${jobId}`, {
         method: 'PUT',
@@ -242,8 +251,10 @@ export default function AdminJobsClient({ initialJobs, initialTemplates, serverE
       }
     } catch (error) {
       console.error('Error updating job status:', error);
+    } finally {
+      setIsUpdatingStatus(null);
+      setActiveMenu(null);
     }
-    setActiveMenu(null);
   };
 
   const filteredJobs = jobs.filter(job =>
@@ -549,36 +560,56 @@ export default function AdminJobsClient({ initialJobs, initialTemplates, serverE
                             {job.status === 'published' && (
                               <button
                                 onClick={() => handleStatusChange(job.id, 'paused')}
-                                className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
+                                disabled={isUpdatingStatus === job.id}
+                                className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 group disabled:opacity-50"
                               >
-                                <Pause className="w-4 h-4" />
+                                {isUpdatingStatus === job.id ? (
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                  <Pause className="w-4 h-4" />
+                                )}
                                 Pause Job
                               </button>
                             )}
                             {job.status === 'paused' && (
                               <button
                                 onClick={() => handleStatusChange(job.id, 'published')}
-                                className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
+                                disabled={isUpdatingStatus === job.id}
+                                className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 group disabled:opacity-50"
                               >
-                                <Play className="w-4 h-4" />
+                                {isUpdatingStatus === job.id ? (
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                  <Play className="w-4 h-4" />
+                                )}
                                 Resume Job
                               </button>
                             )}
                             {job.status === 'draft' && (
                               <button
                                 onClick={() => handleStatusChange(job.id, 'published')}
-                                className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
+                                disabled={isUpdatingStatus === job.id}
+                                className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 group disabled:opacity-50"
                               >
-                                <Play className="w-4 h-4" />
+                                {isUpdatingStatus === job.id ? (
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                  <Play className="w-4 h-4" />
+                                )}
                                 Publish Job
                               </button>
                             )}
                             {job.status !== 'closed' && job.status !== 'archived' && (
                               <button
                                 onClick={() => handleStatusChange(job.id, 'closed')}
-                                className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 text-red-600"
+                                disabled={isUpdatingStatus === job.id}
+                                className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 text-red-600 group disabled:opacity-50"
                               >
-                                <Archive className="w-4 h-4" />
+                                {isUpdatingStatus === job.id ? (
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                  <Archive className="w-4 h-4" />
+                                )}
                                 Close Job
                               </button>
                             )}
@@ -673,10 +704,15 @@ export default function AdminJobsClient({ initialJobs, initialTemplates, serverE
                         </button>
                         <button
                           onClick={() => handleDeleteTemplate(template.id)}
-                          className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          disabled={isTemplateAction === template.id}
+                          className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
                           title="Delete template"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          {isTemplateAction === template.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="w-4 h-4" />
+                          )}
                         </button>
                       </div>
                     </div>
@@ -946,10 +982,20 @@ export default function AdminJobsClient({ initialJobs, initialTemplates, serverE
                   <button
                     type="button"
                     onClick={handleSaveAsTemplate}
-                    className="px-4 py-3 border border-indigo-200 text-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors flex items-center gap-2"
+                    disabled={isTemplateAction === 'save'}
+                    className="px-4 py-3 border border-indigo-200 text-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors flex items-center gap-2 disabled:opacity-50"
                   >
-                    <FileText className="w-4 h-4" />
-                    Save as Template
+                    {isTemplateAction === 'save' ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <FileText className="w-4 h-4" />
+                        Save as Template
+                      </>
+                    )}
                   </button>
                 )}
                 <button

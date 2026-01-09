@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowLeft, Clock, MapPin, Briefcase, DollarSign, AlertCircle, CheckCircle, ArrowUpRight } from 'lucide-react';
+import { ArrowLeft, Clock, MapPin, Briefcase, DollarSign, AlertCircle, CheckCircle, ArrowUpRight, Loader2 } from 'lucide-react';
 import { ShareButton } from '@/components/ShareButton';
 
 interface Job {
@@ -49,7 +49,10 @@ const isDeadlinePassed = (deadline?: string) => {
   return days !== null && days < 0;
 };
 
+import { useState } from 'react';
+
 export default function JobPageClient({ job }: JobPageClientProps) {
+  const [isNavigating, setIsNavigating] = useState<string | null>(null);
   const daysUntil = getDaysUntilDeadline(job.application_deadline);
   const approaching = isDeadlineApproaching(job.application_deadline);
   const lastDay = isLastDay(job.application_deadline);
@@ -77,10 +80,15 @@ export default function JobPageClient({ job }: JobPageClientProps) {
         <div className="max-w-5xl mx-auto px-6 py-8">
           <Link
             href="/careers"
-            className="inline-flex items-center gap-2 text-gray-400 hover:text-black mb-8 transition-all font-bold uppercase tracking-widest text-xs group"
+            onClick={() => setIsNavigating('back')}
+            className="inline-flex items-center gap-2 text-gray-400 hover:text-black mb-8 transition-all font-bold uppercase tracking-widest text-xs group disabled:opacity-70"
           >
-            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-            Back to Positions
+            {isNavigating === 'back' ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+            )}
+            {isNavigating === 'back' ? 'Loading...' : 'Back to Positions'}
           </Link>
 
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-8">
@@ -118,10 +126,18 @@ export default function JobPageClient({ job }: JobPageClientProps) {
               {!deadlinePassed && (
                 <Link
                   href={`/apply/${job.slug}`}
-                  className="flex-1 md:flex-none px-10 py-4 bg-black text-white rounded-2xl hover:bg-gray-800 transition-all font-black shadow-xl shadow-black/10 text-center active:scale-[0.98]"
+                  onClick={() => setIsNavigating('apply-header')}
+                  className="flex-1 md:flex-none px-10 py-4 bg-black text-white rounded-2xl hover:bg-gray-800 transition-all font-black shadow-xl shadow-black/10 text-center active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-70"
                   data-testid="apply-now-btn"
                 >
-                  Apply Now
+                  {isNavigating === 'apply-header' ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Loading...
+                    </>
+                  ) : (
+                    'Apply Now'
+                  )}
                 </Link>
               )}
             </div>
@@ -242,9 +258,17 @@ export default function JobPageClient({ job }: JobPageClientProps) {
                   </p>
                   <Link
                     href={`/apply/${job.slug}`}
-                    className="block w-full px-4 py-5 bg-black text-white rounded-2xl hover:bg-gray-800 transition-all font-black text-center shadow-lg shadow-black/10 active:scale-[0.98]"
+                    onClick={() => setIsNavigating('apply-sidebar')}
+                    className="block w-full px-4 py-5 bg-black text-white rounded-2xl hover:bg-gray-800 transition-all font-black text-center shadow-lg shadow-black/10 active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-70"
                   >
-                    Apply for Position
+                    {isNavigating === 'apply-sidebar' ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        Preparing...
+                      </>
+                    ) : (
+                      'Apply for Position'
+                    )}
                   </Link>
                 </div>
               )}

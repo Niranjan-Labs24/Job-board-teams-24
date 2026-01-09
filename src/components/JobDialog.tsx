@@ -1,6 +1,6 @@
 'use client';
 
-import { X, Clock, AlertCircle } from 'lucide-react';
+import { X, Clock, AlertCircle, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { Job } from './JobLanding';
 
@@ -37,7 +37,10 @@ const formatDeadline = (deadline?: string) => {
   });
 };
 
+import { useState } from 'react';
+
 export function JobDialog({ job, onClose }: JobDialogProps) {
+  const [isNavigating, setIsNavigating] = useState(false);
   const deadline = job.application_deadline || job.applicationDeadline;
   const daysUntil = getDaysUntilDeadline(deadline);
   const approaching = isDeadlineApproaching(deadline);
@@ -160,13 +163,21 @@ export function JobDialog({ job, onClose }: JobDialogProps) {
 
           <Link
             href={`/apply/${job.slug}`}
-            className={`block w-full py-6 rounded-3xl transition-all font-black text-center text-xl shadow-xl shadow-black/10 hover:-translate-y-1 active:scale-[0.98] ${
+            onClick={() => setIsNavigating(true)}
+            className={`block w-full py-6 rounded-3xl transition-all font-black text-center text-xl shadow-xl shadow-black/10 hover:-translate-y-1 active:scale-[0.98] flex items-center justify-center gap-3 ${
               lastDay 
                 ? 'bg-red-600 text-white hover:bg-red-700' 
                 : 'bg-black text-white hover:bg-gray-800'
-            }`}
+            } ${isNavigating ? 'opacity-70 cursor-not-allowed' : ''}`}
           >
-            {lastDay ? 'Apply Now - Last Day!' : 'Apply for this position'}
+            {isNavigating ? (
+              <>
+                <Loader2 className="w-6 h-6 animate-spin" />
+                Preparing...
+              </>
+            ) : (
+              lastDay ? 'Apply Now - Last Day!' : 'Apply for this position'
+            )}
           </Link>
         </div>
       </div>
