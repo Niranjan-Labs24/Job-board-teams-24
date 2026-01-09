@@ -6,9 +6,10 @@ import { X, Lock, Mail } from 'lucide-react';
 interface AdminLoginProps {
   onClose: () => void;
   onLogin: () => void;
+  isPage?: boolean;
 }
 
-export function AdminLogin({ onClose, onLogin }: AdminLoginProps) {
+export function AdminLogin({ onClose, onLogin, isPage = false }: AdminLoginProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -31,9 +32,8 @@ export function AdminLogin({ onClose, onLogin }: AdminLoginProps) {
     setIsLoading(false);
   };
 
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-6 z-50">
-      <div className="bg-white rounded-2xl max-w-md w-full p-8">
+  const content = (
+    <div className={`bg-white rounded-2xl max-w-md w-full p-8 ${isPage ? 'shadow-xl border border-gray-100' : ''}`}>
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
           <div className="flex items-center gap-3">
@@ -105,6 +105,15 @@ export function AdminLogin({ onClose, onLogin }: AdminLoginProps) {
           Demo credentials: admin@jobboard.com / admin123
         </p>
       </div>
+  );
+
+  if (isPage) {
+    return content;
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-6 z-50">
+      {content}
     </div>
   );
 }

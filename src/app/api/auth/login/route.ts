@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
           name: 'Admin User',
           role: 'admin',
         },
-        token: 'mock-jwt-token', // In production, generate real JWT
+        token: 'mock-jwt-token', 
       });
     }
     

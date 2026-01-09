@@ -136,3 +136,13 @@ VALUES
    ARRAY['Health insurance', 'Learning budget', 'Flexible work'],
    'published', 'Design', NULL)
 ON CONFLICT (slug) DO NOTHING;
+
+-- RPC Function for incrementing applications count
+CREATE OR REPLACE FUNCTION increment_applications_count(job_id UUID)
+RETURNS void AS $$
+BEGIN
+  UPDATE jobs 
+  SET applications_count = applications_count + 1 
+  WHERE id = job_id;
+END;
+$$ LANGUAGE plpgsql;

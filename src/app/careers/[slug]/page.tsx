@@ -1,5 +1,5 @@
 import { Metadata } from 'next';
-import { query } from '@/lib/db';
+import { getJobBySlug } from '@/lib/db';
 import JobPageClient from './JobPageClient';
 
 interface Job {
@@ -23,8 +23,8 @@ interface Job {
 
 async function getJob(slug: string): Promise<Job | null> {
   try {
-    const jobs = await query<Job>('SELECT * FROM jobs WHERE slug = $1', [slug]);
-    return jobs[0] || null;
+    const job = await getJobBySlug(slug);
+    return job as Job | null;
   } catch (error) {
     console.error('Error fetching job:', error);
     return null;

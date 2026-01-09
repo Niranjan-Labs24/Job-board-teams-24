@@ -1,31 +1,45 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { X, ArrowLeft, Upload } from 'lucide-react';
-import { Job } from './JobLanding';
+import { useState } from "react";
+import { X, ArrowLeft, Upload } from "lucide-react";
+import { createClient } from "@supabase/supabase-js";
+import { Job } from "./JobLanding";
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY!;
+
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 interface ApplicationFormProps {
   job: Job;
-  onClose: () => void;
-  onBack: () => void;
+  onClose?: () => void;
+  onBack?: () => void;
+  isStandalone?: boolean;
 }
 
-export function ApplicationForm({ job, onClose, onBack }: ApplicationFormProps) {
+export function ApplicationForm({
+  job,
+  onClose,
+  onBack,
+  isStandalone = false,
+}: ApplicationFormProps) {
   const [formData, setFormData] = useState({
-    fullName: '',
-    email: '',
-    phone: '',
-    linkedIn: '',
-    portfolio: '',
-    coverLetter: '',
+    fullName: "",
+    email: "",
+    phone: "",
+    linkedIn: "",
+    portfolio: "",
+    coverLetter: "",
   });
   const [resume, setResume] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleResumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -34,70 +48,181 @@ export function ApplicationForm({ job, onClose, onBack }: ApplicationFormProps) 
     }
   };
 
+  const uploadResume = async (file: File): Promise<string | null> => {
+    try {
+      console.log(
+        "Starting resume upload for file:",
+        file.name,
+        "size:",
+        file.size
+      );
+
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${Date.now()}-${Math.random()
+        .toString(36)
+        .substring(2)}.${fileExt}`;
+      const filePath = `resumes/${fileName}`;
+
+      console.log("Uploading to path:", filePath);
+
+      const { data, error } = await supabase.storage
+        .from("resumes")
+        .upload(filePath, file);
+
+      if (error) {
+        console.error("Upload error details:", error);
+        return null;
+      }
+
+      console.log("Upload successful, data:", data);
+
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("resumes").getPublicUrl(filePath);
+
+      console.log("Public URL:", publicUrl);
+      return publicUrl;
+    } catch (err) {
+      console.error("Unexpected error during resume upload:", err);
+      return null;
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    setIsSubmitting(false);
-    setIsSubmitted(true);
+
+    try {
+      let resumeUrl = null;
+      if (resume) {
+        resumeUrl = await uploadResume(resume);
+      }
+
+      const applicationData = {
+        job_id: job.id,
+        name: formData.fullName,
+        email: formData.email,
+        phone: formData.phone,
+        position: job.title,
+        linkedin: formData.linkedIn || null,
+        portfolio: formData.portfolio || null,
+        cover_letter: formData.coverLetter || null,
+        experience: "",
+        resume_url: resumeUrl,
+      };
+
+      const response = await fetch("/api/applications", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(applicationData),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to submit application");
+      }
+
+      setIsSubmitted(true);
+    } catch (error) {
+      console.error("Error submitting application:", error);
+      alert("Failed to submit application. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
+  const successContent = (
+    <div className={`bg-white rounded-2xl p-8 text-center ${isStandalone ? '' : 'max-w-md w-full shadow-xl'}`}>
+      <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+        <svg
+          className="w-8 h-8 text-green-600"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M5 13l4 4L19 7"
+          />
+        </svg>
+      </div>
+      <h2 className="mb-4 text-2xl font-bold">Application Submitted!</h2>
+      <p className="text-gray-600 mb-8">
+        Thank you for applying to the {job.title} position. We&apos;ll
+        review your application and get back to you soon.
+      </p>
+      {onClose ? (
+        <button
+          onClick={onClose}
+          className="w-full bg-black text-white py-4 rounded-xl hover:bg-gray-800 transition-all font-bold"
+        >
+          Close
+        </button>
+      ) : isStandalone ? (
+        <a
+          href="/careers"
+          className="inline-block w-full bg-black text-white py-4 rounded-xl hover:bg-gray-800 transition-all font-bold text-center"
+        >
+          Back to Careers
+        </a>
+      ) : null}
+    </div>
+  );
+
   if (isSubmitted) {
-    return (
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-6 z-50">
-        <div className="bg-white rounded-2xl max-w-md w-full p-8 text-center">
-          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
-          </div>
-          <h2 className="mb-4">Application Submitted!</h2>
-          <p className="text-gray-600 mb-6">
-            Thank you for applying to the {job.title} position. We&apos;ll review your application and get back to you soon.
-          </p>
-          <button
-            onClick={onClose}
-            className="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800 transition-colors"
-          >
-            Close
-          </button>
+    if (isStandalone) {
+      return (
+        <div className="max-w-2xl mx-auto py-12 px-6">
+          {successContent}
         </div>
+      );
+    }
+    return (
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-6 z-50">
+        {successContent}
       </div>
     );
   }
 
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-6 z-50">
-      <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="sticky top-0 bg-white border-b border-gray-200 px-8 py-6 flex justify-between items-center">
-          <div className="flex items-center gap-4">
+  const formContent = (
+    <div className={`bg-white ${isStandalone ? 'rounded-3xl border border-gray-100 shadow-sm' : 'rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto'}`}>
+      {/* Header */}
+      <div className={`sticky top-0 bg-white/80 backdrop-blur-md border-b border-gray-100 px-8 py-6 flex justify-between items-center z-10 ${isStandalone ? 'rounded-t-3xl' : ''}`}>
+        <div className="flex items-center gap-4">
+          {onBack && (
             <button
               onClick={onBack}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-2 hover:bg-gray-100 rounded-xl transition-colors"
             >
               <ArrowLeft className="w-5 h-5" />
             </button>
-            <div>
-              <h2>Apply for {job.title}</h2>
-            </div>
+          )}
+          <div>
+            <h2 className="text-xl font-bold text-gray-900">Apply for {job.title}</h2>
+            {isStandalone && (
+               <p className="text-sm text-gray-500">{job.type} • {job.location}</p>
+            )}
           </div>
+        </div>
+        {onClose && (
           <button
             onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-2 hover:bg-gray-100 rounded-xl transition-colors"
+            data-testid="close-application-btn"
           >
             <X className="w-6 h-6" />
           </button>
-        </div>
+        )}
+      </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="px-8 py-8 space-y-6">
-          {/* Full Name */}
+      {/* Form */}
+      <form onSubmit={handleSubmit} className="px-8 py-10 space-y-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wider">
               Full Name *
             </label>
             <input
@@ -106,15 +231,14 @@ export function ApplicationForm({ job, onClose, onBack }: ApplicationFormProps) 
               value={formData.fullName}
               onChange={handleInputChange}
               required
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
-              placeholder="John Doe"
+              className="w-full px-5 py-4 bg-gray-50 border border-transparent rounded-2xl focus:bg-white focus:border-black transition-all outline-none text-lg"
+              placeholder="Enter your full name"
             />
           </div>
 
-          {/* Email */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Email *
+            <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wider">
+              Email Address *
             </label>
             <input
               type="email"
@@ -122,14 +246,15 @@ export function ApplicationForm({ job, onClose, onBack }: ApplicationFormProps) 
               value={formData.email}
               onChange={handleInputChange}
               required
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
-              placeholder="john@example.com"
+              className="w-full px-5 py-4 bg-gray-50 border border-transparent rounded-2xl focus:bg-white focus:border-black transition-all outline-none text-lg"
+              placeholder="your@email.com"
             />
           </div>
+        </div>
 
-          {/* Phone */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wider">
               Phone Number *
             </label>
             <input
@@ -138,42 +263,13 @@ export function ApplicationForm({ job, onClose, onBack }: ApplicationFormProps) 
               value={formData.phone}
               onChange={handleInputChange}
               required
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
-              placeholder="+1 (555) 123-4567"
+              className="w-full px-5 py-4 bg-gray-50 border border-transparent rounded-2xl focus:bg-white focus:border-black transition-all outline-none text-lg"
+              placeholder="+1 (555) 000-0000"
             />
           </div>
 
-          {/* Resume Upload */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Resume *
-            </label>
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
-              <input
-                type="file"
-                accept=".pdf,.doc,.docx"
-                onChange={handleResumeChange}
-                className="hidden"
-                id="resume-upload"
-                required
-              />
-              <label htmlFor="resume-upload" className="cursor-pointer">
-                <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                {resume ? (
-                  <p className="text-gray-900">{resume.name}</p>
-                ) : (
-                  <>
-                    <p className="text-gray-600">Click to upload your resume</p>
-                    <p className="text-sm text-gray-400 mt-1">PDF, DOC, DOCX (max 5MB)</p>
-                  </>
-                )}
-              </label>
-            </div>
-          </div>
-
-          {/* LinkedIn */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+             <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wider">
               LinkedIn Profile
             </label>
             <input
@@ -181,61 +277,130 @@ export function ApplicationForm({ job, onClose, onBack }: ApplicationFormProps) 
               name="linkedIn"
               value={formData.linkedIn}
               onChange={handleInputChange}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
-              placeholder="https://linkedin.com/in/johndoe"
+              className="w-full px-5 py-4 bg-gray-50 border border-transparent rounded-2xl focus:bg-white focus:border-black transition-all outline-none text-lg"
+              placeholder="https://linkedin.com/in/..."
             />
           </div>
+        </div>
 
-          {/* Portfolio */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Portfolio / Website
-            </label>
+        <div>
+          <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wider">
+            Resume / CV *
+          </label>
+          <div className="relative group">
             <input
-              type="url"
-              name="portfolio"
-              value={formData.portfolio}
-              onChange={handleInputChange}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
-              placeholder="https://yourportfolio.com"
+              type="file"
+              accept=".pdf,.doc,.docx"
+              onChange={handleResumeChange}
+              className="hidden"
+              id="resume-upload"
+              required={!isSubmitted}
             />
-          </div>
-
-          {/* Cover Letter */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Cover Letter
+            <label 
+              htmlFor="resume-upload" 
+              className={`flex flex-col items-center justify-center border-2 border-dashed rounded-3xl p-10 transition-all cursor-pointer ${
+                resume 
+                  ? 'border-green-500 bg-green-50' 
+                  : 'border-gray-200 bg-gray-50 hover:border-black hover:bg-white shadow-sm'
+              }`}
+            >
+              <Upload className={`w-10 h-10 mb-4 ${resume ? 'text-green-600' : 'text-gray-400 group-hover:text-black'}`} />
+              {resume ? (
+                <div className="text-center">
+                  <p className="text-lg font-bold text-green-700">{resume.name}</p>
+                  <p className="text-sm text-green-600/70 mt-1">Ready to upload</p>
+                </div>
+              ) : (
+                <div className="text-center">
+                  <p className="text-lg font-bold text-gray-900">Click to upload resume</p>
+                  <p className="text-sm text-gray-500 mt-2">
+                    Accepts PDF, DOC, DOCX up to 5MB
+                  </p>
+                </div>
+              )}
             </label>
-            <textarea
-              name="coverLetter"
-              value={formData.coverLetter}
-              onChange={handleInputChange}
-              rows={5}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent resize-none"
-              placeholder="Tell us why you're interested in this role..."
-            />
           </div>
+        </div>
 
-          {/* Submit Button */}
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="w-full bg-black text-white py-4 rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
-          >
-            {isSubmitting ? (
-              <>
-                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Submitting...
-              </>
-            ) : (
-              'Submit Application'
-            )}
-          </button>
-        </form>
+        <div>
+          <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wider">
+            Portfolio / Website
+          </label>
+          <input
+            type="url"
+            name="portfolio"
+            value={formData.portfolio}
+            onChange={handleInputChange}
+            className="w-full px-5 py-4 bg-gray-50 border border-transparent rounded-2xl focus:bg-white focus:border-black transition-all outline-none text-lg"
+            placeholder="https://yourportfolio.com"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wider">
+            Cover Letter
+          </label>
+          <textarea
+            name="coverLetter"
+            value={formData.coverLetter}
+            onChange={handleInputChange}
+            rows={6}
+            className="w-full px-5 py-4 bg-gray-50 border border-transparent rounded-2xl focus:bg-white focus:border-black transition-all outline-none text-lg resize-none"
+            placeholder="Why are you a great fit for this role?"
+          />
+        </div>
+
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className="w-full bg-black text-white py-5 rounded-3xl hover:bg-gray-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center text-xl font-bold shadow-xl shadow-black/10 active:scale-[0.98]"
+          data-testid="submit-application-btn"
+        >
+          {isSubmitting ? (
+            <>
+              <svg
+                className="animate-spin -ml-1 mr-3 h-6 w-6 text-white"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
+              </svg>
+              Submitting Application...
+            </>
+          ) : (
+            "Review & Submit"
+          )}
+        </button>
+      </form>
+    </div>
+  );
+
+  if (isStandalone) {
+    return (
+      <div className="min-h-screen bg-[#fafafa] py-12 md:py-20 px-6">
+        <div className="max-w-4xl mx-auto">
+          {formContent}
+        </div>
       </div>
+    );
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-6 z-50">
+      {formContent}
     </div>
   );
 }
