@@ -34,6 +34,7 @@ interface JobTemplate {
   requirements: string[];
   responsibilities: string[];
   benefits: string[];
+  currency?: string;
   created_at: string;
 }
 
@@ -50,6 +51,7 @@ interface JobFormData {
   application_deadline: string;
   category: string;
   color: string;
+  currency: string;
   status: string;
 }
 
@@ -78,6 +80,7 @@ const initialFormData: JobFormData = {
   application_deadline: '',
   category: '',
   color: '#3B82F6',
+  currency: 'USD',
   status: 'draft',
 };
 
@@ -155,6 +158,7 @@ export default function AdminJobsClient({ initialJobs, initialTemplates, serverE
           responsibilities: formData.responsibilities.split('\n').filter(r => r.trim()),
           benefits: formData.benefits.split('\n').filter(r => r.trim()),
           application_deadline: formData.application_deadline || null,
+          currency: formData.currency,
         }),
       });
       
@@ -188,6 +192,7 @@ export default function AdminJobsClient({ initialJobs, initialTemplates, serverE
           requirements: formData.requirements.split('\n').filter(r => r.trim()),
           responsibilities: formData.responsibilities.split('\n').filter(r => r.trim()),
           benefits: formData.benefits.split('\n').filter(r => r.trim()),
+          currency: formData.currency,
         }),
       });
       
@@ -216,6 +221,7 @@ export default function AdminJobsClient({ initialJobs, initialTemplates, serverE
       application_deadline: '',
       category: template.category,
       color: '#3B82F6',
+      currency: template.currency || 'USD',
       status: 'draft',
     });
     setShowTemplateModal(false);
@@ -689,7 +695,10 @@ export default function AdminJobsClient({ initialJobs, initialTemplates, serverE
                           <span>{template.type}</span>
                           <span>{template.location}</span>
                           {template.salary_min && template.salary_max && (
-                            <span>${template.salary_min} - ${template.salary_max}</span>
+                            <span>
+                              {template.currency === 'INR' ? '₹' : template.currency === 'EUR' ? '€' : '$'}
+                              {template.salary_min} - {template.currency === 'INR' ? '₹' : template.currency === 'EUR' ? '€' : '$'}{template.salary_max}
+                            </span>
                           )}
                         </div>
                       </div>
@@ -877,19 +886,33 @@ export default function AdminJobsClient({ initialJobs, initialTemplates, serverE
                 </div>
               </div>
 
-              {/* Color Picker */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Job Color</label>
-                <div className="flex items-center gap-2">
-                  {colorOptions.map(color => (
-                    <button
-                      key={color}
-                      type="button"
-                      onClick={() => setFormData(prev => ({ ...prev, color }))}
-                      className={`w-8 h-8 rounded-full transition-transform ${formData.color === color ? 'ring-2 ring-offset-2 ring-indigo-500 scale-110' : 'hover:scale-105'}`}
-                      style={{ backgroundColor: color }}
-                    />
-                  ))}
+              {/* Color & Currency Picker Row */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Job Color</label>
+                  <div className="flex items-center gap-2">
+                    {colorOptions.map(color => (
+                      <button
+                        key={color}
+                        type="button"
+                        onClick={() => setFormData(prev => ({ ...prev, color }))}
+                        className={`w-8 h-8 rounded-full transition-transform ${formData.color === color ? 'ring-2 ring-offset-2 ring-indigo-500 scale-110' : 'hover:scale-105'}`}
+                        style={{ backgroundColor: color }}
+                      />
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Currency *</label>
+                  <select
+                    value={formData.currency}
+                    onChange={(e) => setFormData(prev => ({ ...prev, currency: e.target.value }))}
+                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="USD">USD ($)</option>
+                    <option value="INR">INR (₹)</option>
+                    <option value="EUR">EUR (€)</option>
+                  </select>
                 </div>
               </div>
 

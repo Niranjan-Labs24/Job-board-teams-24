@@ -32,12 +32,6 @@ export function ShareButton({ title, url, description }: ShareButtonProps) {
       url: `https://twitter.com/intent/tweet?text=${encodedTitle}&url=${encodedUrl}`,
     },
     {
-      name: 'Facebook',
-      icon: Facebook,
-      color: 'bg-[#1877F2] hover:bg-[#1464d3]',
-      url: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`,
-    },
-    {
       name: 'Email',
       icon: Mail,
       color: 'bg-gray-600 hover:bg-gray-700',
@@ -71,16 +65,19 @@ export function ShareButton({ title, url, description }: ShareButtonProps) {
       </button>
 
       {showModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-6 z-50">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 animate-in fade-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-start justify-center p-4 z-50">
+          <div className="bg-white rounded-3xl max-w-md w-full p-8 pt-12 mt-20 animate-in fade-in zoom-in-95 duration-200 relative shadow-2xl">
+            {/* Absolute Close Button for better accessibility */}
+            <button
+              onClick={() => setShowModal(false)}
+              className="absolute top-5 right-5 w-10 h-10 bg-gray-50 text-gray-500 rounded-full flex items-center justify-center hover:bg-gray-100 hover:text-black transition-all z-10"
+              aria-label="Close modal"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-lg font-semibold">Share this job</h3>
-              <button
-                onClick={() => setShowModal(false)}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
+              <h3 className="text-2xl font-black tracking-tight">Share this job</h3>
             </div>
 
             {/* Copy Link */}

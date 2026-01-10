@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ArrowUpRight, Lock, Clock, AlertCircle, Loader2, Briefcase, MapPin, DollarSign } from 'lucide-react';
+import { ArrowUpRight, Lock, Clock, AlertCircle, Loader2, Briefcase, MapPin, DollarSign, IndianRupee, Euro } from 'lucide-react';
 import { JobDialog } from './JobDialog';
 
 export interface Job {
@@ -19,6 +19,7 @@ export interface Job {
   responsibilities: string[];
   application_deadline?: string;
   status?: 'draft' | 'published' | 'paused' | 'closed' | 'archived';
+  currency?: string;
   // Legacy field mapping for compatibility
   salaryMin?: string;
   salaryMax?: string;
@@ -148,7 +149,7 @@ export function JobLanding({ onAdminClick }: JobLandingProps) {
               >
                 <div 
                   onClick={() => setSelectedJob(job)}
-                  className="absolute inset-0 z-0 cursor-pointer" 
+                  className="absolute inset-0 z-20 cursor-pointer" 
                 />
                 
                 <div className="flex items-start gap-6 relative z-10 flex-1">
@@ -185,8 +186,14 @@ export function JobLanding({ onAdminClick }: JobLandingProps) {
                         {job.location}
                       </span>
                       <span className="flex items-center gap-2">
-                        <DollarSign className="w-3.5 h-3.5" />
-                        ${salaryMin} - ${salaryMax}
+                        {job.currency === 'INR' ? (
+                          <IndianRupee className="w-3.5 h-3.5 text-green-500" />
+                        ) : job.currency === 'EUR' ? (
+                          <Euro className="w-3.5 h-3.5 text-green-500" />
+                        ) : (
+                          <DollarSign className="w-3.5 h-3.5 text-green-500" />
+                        )}
+                        {job.currency === 'INR' ? '₹' : job.currency === 'EUR' ? '€' : '$'}{salaryMin} - {job.currency === 'INR' ? '₹' : job.currency === 'EUR' ? '€' : '$'}{salaryMax}
                       </span>
                     </div>
 
@@ -207,7 +214,7 @@ export function JobLanding({ onAdminClick }: JobLandingProps) {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-4 w-full md:w-auto relative z-10">
+                <div className="flex items-center gap-4 w-full md:w-auto relative z-30">
                   <button
                     onClick={() => setSelectedJob(job)}
                     className="flex-1 md:flex-none px-8 py-3 bg-gray-50 text-gray-900 rounded-2xl hover:bg-gray-100 transition-all font-black uppercase tracking-widest text-[11px] text-center"
