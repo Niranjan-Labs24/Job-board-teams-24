@@ -16,7 +16,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    
+
     const templateData = {
       name: body.name,
       category: body.category || 'General',
@@ -29,10 +29,11 @@ export async function POST(request: NextRequest) {
       requirements: body.requirements || [],
       responsibilities: body.responsibilities || [],
       benefits: body.benefits || [],
+      currency: body.currency || 'USD',
     };
-    
+
     const template = await createTemplate(templateData);
-    
+
     return NextResponse.json(template, { status: 201 });
   } catch (error) {
     console.error('Error creating template:', error);

@@ -26,6 +26,7 @@ CREATE TABLE IF NOT EXISTS job_templates (
   requirements TEXT[],
   responsibilities TEXT[],
   benefits TEXT[],
+  currency VARCHAR(10) DEFAULT 'USD',
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -51,6 +52,7 @@ CREATE TABLE IF NOT EXISTS jobs (
   meta_description TEXT,
   template_id UUID REFERENCES job_templates(id) ON DELETE SET NULL,
   category VARCHAR(100),
+  currency VARCHAR(10) DEFAULT 'USD',
   applications_count INTEGER DEFAULT 0,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -120,21 +122,21 @@ ON CONFLICT (email) DO NOTHING;
 -- Sample seed data (optional)
 -- You can run this to add initial jobs
 
-INSERT INTO jobs (slug, title, type, salary_min, salary_max, location, color, description, requirements, responsibilities, benefits, status, category, application_deadline)
+INSERT INTO jobs (slug, title, type, salary_min, salary_max, location, color, description, requirements, responsibilities, benefits, status, category, currency, application_deadline)
 VALUES 
   ('full-stack-developer', 'Full Stack Developer', 'full-time', '200k', '400k', 'Remote', '#3B82F6', 
    'Build and maintain scalable web applications using modern technologies.',
    ARRAY['5+ years full-stack experience', 'React/Next.js expertise', 'Node.js/Python backend skills'],
    ARRAY['Design and implement features', 'Code reviews and mentoring', 'Collaborate with product team'],
    ARRAY['Health insurance', 'Stock options', 'Flexible hours'],
-   'published', 'Engineering', '2026-02-15'),
+   'published', 'Engineering', 'USD', '2026-02-15'),
   
   ('senior-product-designer', 'Senior Product Designer', 'full-time', '250k', '400k', 'Bangalore, Karnataka', '#F97316',
    'Lead product design initiatives and create exceptional user experiences.',
    ARRAY['7+ years UX/UI design', 'Strong portfolio', 'Figma expertise'],
    ARRAY['Lead design projects', 'User research and testing', 'Design system maintenance'],
    ARRAY['Health insurance', 'Learning budget', 'Flexible work'],
-   'published', 'Design', NULL)
+   'published', 'Design', 'USD', NULL)
 ON CONFLICT (slug) DO NOTHING;
 
 -- RPC Function for incrementing applications count

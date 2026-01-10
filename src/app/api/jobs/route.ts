@@ -8,13 +8,13 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status') || undefined;
     const includeArchived = searchParams.get('includeArchived') === 'true';
-    
+
     console.log('Fetching jobs with:', { status, includeArchived });
-    
+
     const jobs = await getJobs({ status, includeArchived });
-    
+
     console.log('Jobs fetched:', jobs.length);
-    
+
     const response = NextResponse.json(jobs);
     response.headers.set('Cache-Control', 'no-store');
     return response;
@@ -28,11 +28,11 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    
+
     // Generate slug from title
     const tempId = Date.now().toString();
     const slug = generateSlug(body.title, tempId);
-    
+
     const jobData = {
       slug,
       title: body.title,
@@ -51,10 +51,11 @@ export async function POST(request: NextRequest) {
       meta_description: body.meta_description || body.description?.substring(0, 160),
       template_id: body.template_id || null,
       category: body.category || null,
+      currency: body.currency || 'USD',
     };
-    
+
     const job = await createJob(jobData);
-    
+
     return NextResponse.json(job, { status: 201 });
   } catch (error) {
     console.error('Error creating job:', error);

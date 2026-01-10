@@ -1,8 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowLeft, Clock, MapPin, Briefcase, DollarSign, AlertCircle, CheckCircle, ArrowUpRight, Loader2 } from 'lucide-react';
+import { ArrowLeft, Clock, MapPin, Briefcase, DollarSign, IndianRupee, Euro, AlertCircle, CheckCircle, ArrowUpRight, Loader2 } from 'lucide-react';
 import { ShareButton } from '@/components/ShareButton';
+import { ApplicationForm } from '@/components/ApplicationForm';
 
 interface Job {
   id: string;
@@ -19,6 +20,7 @@ interface Job {
   benefits: string[];
   application_deadline?: string;
   category?: string;
+  currency?: string;
 }
 
 interface JobPageClientProps {
@@ -53,13 +55,14 @@ import { useState } from 'react';
 
 export default function JobPageClient({ job }: JobPageClientProps) {
   const [isNavigating, setIsNavigating] = useState<string | null>(null);
+  const [showApplyForm, setShowApplyForm] = useState(false);
   const daysUntil = getDaysUntilDeadline(job.application_deadline);
   const approaching = isDeadlineApproaching(job.application_deadline);
   const lastDay = isLastDay(job.application_deadline);
   const deadlinePassed = isDeadlinePassed(job.application_deadline);
 
   return (
-    <div className="min-h-screen bg-[#fafafa]">
+    <div className="min-h-screen bg-[#fafafa] relative overflow-hidden">
       {/* Deadline Banner */}
       {job.application_deadline && approaching && !deadlinePassed && (
         <div className={`${lastDay ? 'bg-red-600' : 'bg-amber-500'} text-white py-4 shadow-lg animate-in slide-in-from-top duration-500`}>
@@ -94,10 +97,9 @@ export default function JobPageClient({ job }: JobPageClientProps) {
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-8">
             <div className="flex items-start gap-6">
               <div
-                className="w-20 h-20 rounded-3xl flex-shrink-0 shadow-2xl shadow-black/5 flex items-center justify-center text-white text-2xl font-black"
+                className="w-20 h-20 rounded-full flex-shrink-0 shadow-2xl shadow-black/5 flex items-center justify-center text-white text-2xl font-black"
                 style={{ backgroundColor: job.color }}
               >
-                {job.title.charAt(0)}
               </div>
               <div>
                 <h1 className="text-4xl font-black text-gray-900 mb-3 tracking-tight leading-tight">{job.title}</h1>
@@ -111,8 +113,14 @@ export default function JobPageClient({ job }: JobPageClientProps) {
                     {job.location}
                   </span>
                   <span className="flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100">
-                    <DollarSign className="w-4 h-4 text-green-500" />
-                    ${job.salary_min} - ${job.salary_max}
+                    {job.currency === 'INR' ? (
+                      <IndianRupee className="w-4 h-4 text-green-500" />
+                    ) : job.currency === 'EUR' ? (
+                      <Euro className="w-4 h-4 text-green-500" />
+                    ) : (
+                      <DollarSign className="w-4 h-4 text-green-500" />
+                    )}
+                    {job.currency === 'INR' ? '₹' : job.currency === 'EUR' ? '€' : '$'}{job.salary_min} - {job.currency === 'INR' ? '₹' : job.currency === 'EUR' ? '€' : '$'}{job.salary_max}
                   </span>
                 </div>
               </div>
@@ -124,28 +132,20 @@ export default function JobPageClient({ job }: JobPageClientProps) {
                 description={job.description?.substring(0, 200)}
               />
               {!deadlinePassed && (
-                <Link
-                  href={`/apply/${job.slug}`}
-                  onClick={() => setIsNavigating('apply-header')}
+                <button
+                  onClick={() => setShowApplyForm(true)}
                   className="flex-1 md:flex-none px-10 py-4 bg-black text-white rounded-2xl hover:bg-gray-800 transition-all font-black shadow-xl shadow-black/10 text-center active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-70"
                   data-testid="apply-now-btn"
                 >
-                  {isNavigating === 'apply-header' ? (
-                    <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      Loading...
-                    </>
-                  ) : (
-                    'Apply Now'
-                  )}
-                </Link>
+                  Apply Now
+                </button>
               )}
             </div>
           </div>
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-6 py-12">
+      <div className="max-w-5xl mx-auto px-6 py-12 pb-64">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-12">
@@ -198,40 +198,43 @@ export default function JobPageClient({ job }: JobPageClientProps) {
               <div className="text-gray-700 text-lg leading-relaxed whitespace-pre-line font-medium">{job.description}</div>
             </section>
 
-            {/* Responsibilities */}
-            {job.responsibilities && job.responsibilities.length > 0 && (
-              <section className="bg-white p-10 rounded-3xl border border-gray-100 shadow-sm">
-                <h2 className="text-sm font-black uppercase tracking-[0.2em] text-gray-400 mb-6">Responsibilities</h2>
-                <ul className="space-y-4">
-                  {job.responsibilities.map((item, index) => (
-                    <li key={index} className="flex items-start gap-4">
-                      <span className="w-2 h-2 bg-indigo-500 rounded-full mt-2.5 flex-shrink-0 opacity-40" />
-                      <span className="text-gray-700 text-lg font-bold leading-snug">{item}</span>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            )}
+            {/* Responsibilities & Requirements Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {/* Responsibilities */}
+              {job.responsibilities && job.responsibilities.length > 0 && (
+                <section className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
+                  <h2 className="text-xs font-black uppercase tracking-[0.2em] text-gray-400 mb-6">Responsibilities</h2>
+                  <ul className="space-y-4">
+                    {job.responsibilities.map((item, index) => (
+                      <li key={index} className="flex items-start gap-4">
+                        <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full mt-2 flex-shrink-0 opacity-40" />
+                        <span className="text-gray-700 text-base font-bold leading-snug">{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              )}
 
-            {/* Requirements */}
-            {job.requirements && job.requirements.length > 0 && (
-              <section className="bg-white p-10 rounded-3xl border border-gray-100 shadow-sm">
-                <h2 className="text-sm font-black uppercase tracking-[0.2em] text-gray-400 mb-6">Requirements</h2>
-                <ul className="space-y-4">
-                  {job.requirements.map((item, index) => (
-                    <li key={index} className="flex items-start gap-4">
-                      <span className="w-2 h-2 bg-purple-500 rounded-full mt-2.5 flex-shrink-0 opacity-40" />
-                      <span className="text-gray-700 text-lg font-bold leading-snug">{item}</span>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            )}
+              {/* Requirements */}
+              {job.requirements && job.requirements.length > 0 && (
+                <section className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
+                  <h2 className="text-xs font-black uppercase tracking-[0.2em] text-gray-400 mb-6">Requirements</h2>
+                  <ul className="space-y-4">
+                    {job.requirements.map((item, index) => (
+                      <li key={index} className="flex items-start gap-4">
+                        <span className="w-1.5 h-1.5 bg-purple-500 rounded-full mt-2 flex-shrink-0 opacity-40" />
+                        <span className="text-gray-700 text-base font-bold leading-snug">{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              )}
+            </div>
 
             {/* Benefits */}
             {job.benefits && job.benefits.length > 0 && (
-              <section className="bg-white p-10 rounded-3xl border border-gray-100 shadow-sm">
-                <h2 className="text-sm font-black uppercase tracking-[0.2em] text-gray-400 mb-6">Perks & Benefits</h2>
+              <section className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
+                <h2 className="text-xs font-black uppercase tracking-[0.2em] text-gray-400 mb-6">Perks & Benefits</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {job.benefits.map((item, index) => (
                     <div key={index} className="flex items-center gap-4 p-5 bg-green-50/50 rounded-2xl border border-green-100 transition-all hover:bg-green-50 group">
@@ -256,25 +259,17 @@ export default function JobPageClient({ job }: JobPageClientProps) {
                   <p className="text-gray-500 font-medium mb-8 leading-relaxed">
                     We&apos;re excited to hear from you. Take the next step in your career today.
                   </p>
-                  <Link
-                    href={`/apply/${job.slug}`}
-                    onClick={() => setIsNavigating('apply-sidebar')}
+                  <button
+                    onClick={() => setShowApplyForm(true)}
                     className="block w-full px-4 py-5 bg-black text-white rounded-2xl hover:bg-gray-800 transition-all font-black text-center shadow-lg shadow-black/10 active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-70"
                   >
-                    {isNavigating === 'apply-sidebar' ? (
-                      <>
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                        Preparing...
-                      </>
-                    ) : (
-                      'Apply for Position'
-                    )}
-                  </Link>
+                    Apply for Position
+                  </button>
                 </div>
               )}
 
-              {/* Company Info */}
-              <div className="bg-indigo-600 rounded-3xl p-8 text-white shadow-xl shadow-indigo-200">
+              {/* Company Info - Commented Out */}
+              {/* <div className="bg-indigo-600 rounded-3xl p-8 text-white shadow-xl shadow-indigo-200">
                 <h3 className="text-2xl font-black mb-4 tracking-tight">About Teams 24</h3>
                 <p className="text-indigo-100 font-medium mb-6 leading-relaxed">
                   We&apos;re building the next generation of collaboration tools. Join a team that values innovation, speed, and design.
@@ -283,31 +278,38 @@ export default function JobPageClient({ job }: JobPageClientProps) {
                   Our Story
                   <ArrowUpRight className="w-4 h-4" />
                 </a>
-              </div>
+              </div> */}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Footer */}
-      <footer className="bg-gray-900 text-white mt-20">
-        <div className="max-w-4xl mx-auto px-6 py-12">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-xl font-bold">Teams 24</h3>
-              <p className="text-gray-400 text-sm mt-1">Building the future of work</p>
-            </div>
-            <div className="flex items-center gap-6 text-gray-400">
-              <a href="#" className="hover:text-white transition-colors">About</a>
-              <a href="/careers" className="hover:text-white transition-colors">Careers</a>
-              <a href="#" className="hover:text-white transition-colors">Contact</a>
-            </div>
-          </div>
-          <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-500 text-sm">
-            © 2026 Teams 24. All rights reserved.
-          </div>
+      {/* Footer Watermark */}
+      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-screen max-w-[90rem] overflow-hidden pointer-events-none">
+        <div className="w-full h-[7.5rem] sm:h-[9.375rem] md:h-[12.5rem] lg:h-[15.625rem] xl:h-[21.875rem] flex items-end justify-center select-none opacity-10">
+          <p
+            className="font-normal text-center whitespace-nowrap w-full px-4"
+            style={{
+              fontFamily: "Dyson Sans Modern",
+              fontWeight: 400,
+              fontSize: "clamp(5rem, 25vw, 25rem)",
+              lineHeight: "0.6",
+              color: "#131313",
+              transform: "translateY(15%)",
+              minWidth: "max-content",
+            }}
+          >
+            Teams24
+          </p>
         </div>
-      </footer>
+      </div>
+
+      {showApplyForm && (
+        <ApplicationForm 
+          job={job} 
+          onClose={() => setShowApplyForm(false)} 
+        />
+      )}
     </div>
   );
 }
