@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { X, Lock, Mail } from 'lucide-react';
+import { X, Lock, Mail, Loader2 } from 'lucide-react';
 
 interface AdminLoginProps {
   onClose: () => void;
@@ -95,9 +95,16 @@ export function AdminLogin({ onClose, onLogin, isPage = false }: AdminLoginProps
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50"
+            className="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
           >
-            {isLoading ? 'Signing in...' : 'Sign In'}
+            {isLoading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Signing in...
+              </>
+            ) : (
+              'Sign In'
+            )}
           </button>
         </form>
 

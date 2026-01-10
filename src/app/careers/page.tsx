@@ -45,6 +45,20 @@ export default function CareersPage() {
   const [loading, setLoading] = useState(true);
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+  const [loadingAction, setLoadingAction] = useState<{ id: string, type: 'details' | 'apply' } | null>(null);
+
+  const handleDetailsClick = (job: Job) => {
+    setLoadingAction({ id: job.id, type: 'details' });
+    // Simulate brief loading for better feedback even if it's just opening a modal
+    setTimeout(() => {
+      setSelectedJob(job);
+      setLoadingAction(null);
+    }, 400);
+  };
+
+  const handleApplyClick = (job: Job) => {
+    setLoadingAction({ id: job.id, type: 'apply' });
+  };
 
   useEffect(() => {
     async function fetchJobs() {
@@ -139,7 +153,8 @@ export default function CareersPage() {
 
       {/* Jobs List */}
       <div className="max-w-6xl mx-auto px-6 py-16">
-        <div className="grid gap-6">
+        <h2 className="text-4xl font-black text-gray-900 mb-12 tracking-tight">Open positions</h2>
+        <div className="grid gap-0">
           {filteredJobs.map((job) => {
             const daysUntil = getDaysUntilDeadline(job.application_deadline);
             const approaching = isDeadlineApproaching(job.application_deadline);
@@ -148,61 +163,52 @@ export default function CareersPage() {
             return (
               <div
                 key={job.id}
-                className="group relative bg-white rounded-3xl border border-gray-100 p-8 hover:shadow-2xl hover:shadow-black/5 transition-all duration-500 flex flex-col md:flex-row items-start md:items-center justify-between gap-8"
+                className="group relative bg-[#fafafa] border-b border-gray-200 p-8 hover:bg-gray-100/50 transition-all duration-300 flex flex-col md:flex-row items-center justify-between gap-8"
               >
                 <Link href={`/careers/${job.slug}`} className="absolute inset-0 z-0" />
                 
                 <div className="flex items-start gap-6 relative z-10 flex-1">
                   <div
-                    className="w-16 h-16 rounded-2xl flex-shrink-0 flex items-center justify-center text-white text-xl font-black shadow-lg shadow-black/5 transition-transform group-hover:scale-110 duration-500"
+                    className="w-14 h-14 rounded-full flex-shrink-0 flex items-center justify-center text-white text-xl font-black shadow-sm transition-transform group-hover:scale-105 duration-500"
                     style={{ backgroundColor: job.color }}
                   >
-                    {job.title.charAt(0)}
                   </div>
-                  <div>
-                    <div className="flex flex-wrap items-center gap-3 mb-2">
-                      <h2 className="text-2xl font-black text-gray-900 tracking-tight transition-colors group-hover:text-indigo-600">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-3 mb-1">
+                      <h2 className="text-xl font-bold text-gray-900 tracking-tight transition-colors group-hover:text-indigo-600 truncate">
                         {job.title}
                       </h2>
                       {lastDay && (
-                        <span className="px-3 py-1 bg-red-500 text-white text-[10px] font-black uppercase tracking-widest rounded-full animate-pulse">
+                        <span className="px-2 py-0.5 bg-red-500 text-white text-[9px] font-black uppercase tracking-widest rounded-full animate-pulse">
                           Last Day
                         </span>
                       )}
                       {!lastDay && approaching && (
-                        <span className="px-3 py-1 bg-amber-400 text-amber-900 text-[10px] font-black uppercase tracking-widest rounded-full">
+                        <span className="px-2 py-0.5 bg-amber-400 text-amber-900 text-[9px] font-black uppercase tracking-widest rounded-full">
                           Closing Soon
                         </span>
                       )}
                     </div>
                     
-                    <div className="flex flex-wrap items-center gap-6 text-gray-400 font-bold uppercase tracking-widest text-[10px]">
-                      <span className="flex items-center gap-2">
-                        <Briefcase className="w-3.5 h-3.5" />
-                        {job.type}
-                      </span>
-                      <span className="flex items-center gap-2">
-                        <MapPin className="w-3.5 h-3.5" />
-                        {job.location}
-                      </span>
-                      <span className="flex items-center gap-2">
-                        <DollarSign className="w-3.5 h-3.5" />
-                        ${job.salary_min} - ${job.salary_max}
-                      </span>
+                    <div className="flex flex-wrap items-center gap-2 text-gray-500 font-medium text-xs">
+                      <span>{job.type}</span>
+                      <span>•</span>
+                      <span>{job.location}</span>
+                      {job.category && (
+                        <>
+                          <span>•</span>
+                          <span>{job.category}</span>
+                        </>
+                      )}
                     </div>
 
                     {job.application_deadline && (
-                      <p className={`text-[11px] font-bold mt-4 uppercase tracking-widest flex items-center gap-2 ${lastDay ? 'text-red-600' : approaching ? 'text-amber-600' : 'text-gray-400'}`}>
-                        <Clock className="w-3.5 h-3.5" />
+                      <p className={`text-[11px] font-bold mt-2 uppercase tracking-widest flex items-center gap-2 ${lastDay ? 'text-red-600' : approaching ? 'text-amber-600' : 'text-gray-400'}`}>
+                        <Clock className="w-3 h-3" />
                         Apply by {new Date(job.application_deadline).toLocaleDateString('en-US', {
                           month: 'short',
                           day: 'numeric'
                         })}
-                        {daysUntil !== null && daysUntil >= 0 && (
-                          <span className="opacity-60">
-                            ({daysUntil === 0 ? 'Today' : `${daysUntil}d left`})
-                          </span>
-                        )}
                       </p>
                     )}
                   </div>
@@ -210,16 +216,32 @@ export default function CareersPage() {
 
                 <div className="flex items-center gap-4 w-full md:w-auto relative z-10">
                   <button
-                    onClick={() => setSelectedJob(job)}
-                    className="flex-1 md:flex-none px-8 py-3 bg-gray-50 text-gray-900 rounded-2xl hover:bg-gray-100 transition-all font-black uppercase tracking-widest text-[11px] text-center"
+                    onClick={() => handleDetailsClick(job)}
+                    disabled={loadingAction?.id === job.id}
+                    className="flex-1 md:flex-none px-6 py-2.5 bg-gray-50 text-gray-900 rounded-xl hover:bg-gray-100 transition-all font-bold uppercase tracking-widest text-[10px] text-center border border-gray-100 disabled:opacity-70 flex items-center justify-center gap-2"
                   >
-                    Details
+                    {loadingAction?.id === job.id && loadingAction.type === 'details' ? (
+                      <>
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                        Opening...
+                      </>
+                    ) : (
+                      'Details'
+                    )}
                   </button>
                   <Link
                     href={`/apply/${job.slug}`}
-                    className="flex-1 md:flex-none px-8 py-3 bg-black text-white rounded-2xl hover:bg-gray-800 transition-all font-black uppercase tracking-widest text-[11px] text-center shadow-lg shadow-black/10 active:scale-[0.98]"
+                    onClick={() => handleApplyClick(job)}
+                    className="flex-1 md:flex-none px-6 py-2.5 bg-black text-white rounded-xl hover:bg-gray-800 transition-all font-bold uppercase tracking-widest text-[10px] text-center shadow-md active:scale-[0.98] disabled:opacity-70 flex items-center justify-center gap-2"
                   >
-                    Apply
+                    {loadingAction?.id === job.id && loadingAction.type === 'apply' ? (
+                      <>
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                        Loading...
+                      </>
+                    ) : (
+                      'Apply Now'
+                    )}
                   </Link>
                 </div>
               </div>
@@ -237,7 +259,7 @@ export default function CareersPage() {
       </div>
 
       {/* Results Count & Watermark */}
-      <div className="max-w-6xl mx-auto px-6 pb-32">
+      <div className="max-w-6xl mx-auto px-6 pb-64">
         <p className="text-gray-400 font-bold uppercase tracking-widest text-[10px]">
           Showing {filteredJobs.length} results
         </p>
