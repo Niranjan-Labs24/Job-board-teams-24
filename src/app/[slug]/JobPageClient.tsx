@@ -82,7 +82,7 @@ export default function JobPageClient({ job }: JobPageClientProps) {
       <div className="bg-white border-b border-gray-100 shadow-sm sticky top-0 z-20 backdrop-blur-md bg-white/80">
         <div className="max-w-5xl mx-auto px-6 py-8">
           <Link
-            href="/careers"
+            href="/"
             onClick={() => setIsNavigating('back')}
             className="inline-flex items-center gap-2 text-gray-400 hover:text-black mb-8 transition-all font-bold uppercase tracking-widest text-xs group disabled:opacity-70"
           >

@@ -52,7 +52,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       description,
       type: 'website',
       siteName: 'Teams 24 Careers',
-      url: `/careers/${job.slug}`,
+      url: `/${job.slug}`,
     },
     twitter: {
       card: 'summary_large_image',
@@ -117,7 +117,7 @@ export default async function JobPage({ params }: { params: Promise<{ slug: stri
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Job Not Found</h1>
           <p className="text-gray-600">This position may have been filled or removed.</p>
-          <a href="/careers" className="mt-4 inline-block text-indigo-600 hover:text-indigo-700">
+          <a href="/" className="mt-4 inline-block text-indigo-600 hover:text-indigo-700">
             ← View all open positions
           </a>
         </div>
