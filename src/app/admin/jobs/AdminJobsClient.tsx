@@ -88,9 +88,10 @@ interface AdminJobsClientProps {
   initialJobs: Job[];
   initialTemplates: JobTemplate[];
   serverError: string | null;
+  userRole?: string;
 }
 
-export default function AdminJobsClient({ initialJobs, initialTemplates, serverError }: AdminJobsClientProps) {
+export default function AdminJobsClient({ initialJobs, initialTemplates, serverError, userRole }: AdminJobsClientProps) {
   const router = useRouter();
   const [jobs, setJobs] = useState<Job[]>(initialJobs);
   const [templates, setTemplates] = useState<JobTemplate[]>(initialTemplates);
@@ -336,6 +337,17 @@ export default function AdminJobsClient({ initialJobs, initialTemplates, serverE
               </div>
             </div>
             <div className="flex items-center gap-3">
+              {/* ADMIN MANAGEMENT BUTTON */}
+              {userRole === 'SUPER_ADMIN' && (
+                <button
+                  onClick={() => router.push('/admin/admin-management')}
+                  className="flex items-center gap-2 px-4 py-2 border border-blue-200 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors"
+                >
+                   <Users className="w-4 h-4" />
+                   Admin Management
+                </button>
+              )}
+
               {activeTab === 'jobs' && (
                 <>
                   <button
