@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/db';
 import { verifyJWT } from '@/lib/jwt';
 
-// Protected Route: SUPER_ADMIN only
 export async function POST(request: NextRequest) {
     try {
         const token = request.cookies.get('auth_token')?.value;
@@ -58,8 +57,6 @@ export async function POST(request: NextRequest) {
 
         if (otpError) {
             console.error("OTP Error during invite:", otpError);
-            // We don't fail the whole request because the user IS whitelisted.
-            // They can just go to the login page and request OTP themselves.
             return NextResponse.json({
                 success: true,
                 message: `User ${email} invited/whitelisted. However, failed to send auto-email: ${otpError.message}. Ask them to login directly.`

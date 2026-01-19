@@ -3,7 +3,7 @@ import { getJobs, createJob } from '@/lib/db';
 import { generateSlug } from '@/lib/types';
 
 
-export const revalidate = 60; // Cache for 60 seconds
+export const revalidate = 60;
 
 export async function GET(request: NextRequest) {
   try {
@@ -18,7 +18,6 @@ export async function GET(request: NextRequest) {
     console.log('Jobs fetched:', jobs.length);
 
     const response = NextResponse.json(jobs);
-    // response.headers.set('Cache-Control', 'no-store'); // REMOVED for efficiency
     return response;
   } catch (error) {
     console.error('Error fetching jobs:', error);
@@ -26,7 +25,6 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST create new job
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();

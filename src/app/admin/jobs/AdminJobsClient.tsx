@@ -369,7 +369,15 @@ export default function AdminJobsClient({ initialJobs, initialTemplates, serverE
                 </>
               )}
               <button
-                onClick={() => router.push('/')}
+                onClick={async () => {
+                  try {
+                    await fetch('/api/auth/logout', { method: 'POST' });
+                    router.push('/admin');
+                    router.refresh();
+                  } catch (error) {
+                    console.error('Logout failed', error);
+                  }
+                }}
                 className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
                 title="Logout"
               >

@@ -9,7 +9,6 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-// Simplified query functions that use Supabase directly
 export async function getJobs(options?: { status?: string; includeArchived?: boolean }) {
   let query = supabase.from('jobs').select('*');
 
@@ -106,7 +105,6 @@ export async function getApplications(options?: { jobId?: string; status?: strin
   const { data, error } = await query;
   if (error) throw error;
 
-  // Transform to match expected format
   return (data || []).map((app: Record<string, unknown>) => ({
     ...app,
     job_title: (app.jobs as Record<string, unknown>)?.title,
@@ -135,7 +133,6 @@ export async function createApplication(appData: Record<string, unknown>) {
 
   if (error) throw error;
 
-  // Update applications count
   if (appData.job_id) {
     await supabase.rpc('increment_applications_count', { job_id: appData.job_id });
   }
@@ -185,15 +182,12 @@ export async function deleteTemplate(id: string) {
   if (error) throw error;
 }
 
-// Health check
 export async function checkHealth() {
   const { error } = await supabase.from('jobs').select('id').limit(1);
   if (error && error.code !== 'PGRST116') throw error;
   return true;
 }
 
-// Generic Query/Execute for raw SQL (using pg if available or Supabase RPC)
-// Since we are in a serverless environment with Supabase, raw SQL via 'pg' is possible if connection string is direct.
 import { Pool } from 'pg';
 
 let pool: Pool | null = null;
@@ -201,17 +195,12 @@ let pool: Pool | null = null;
 if (process.env.POSTGRES_URL || process.env.DATABASE_URL) {
   pool = new Pool({
     connectionString: process.env.POSTGRES_URL || process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false } // Required for Supabase in many cases
+    ssl: { rejectUnauthorized: false }
   });
 }
 
 export async function query<T>(text: string, params?: any[]): Promise<T[]> {
-  // Fallback: If no direct PG connection, try RPC if function exists (advanced)
-  // For now, assume PG connection is available or this will fail.
-  // Ideally we should use Supabase Client completely, but these routes were written with 'execute' style.
   if (!pool) {
-    // If we don't have a pool, we can't run raw SQL easily without RPC.
-    // Let's warn and return empty or throw.
     console.warn("No Postgres connection string found. Raw SQL query cannot run.");
     return [];
   }

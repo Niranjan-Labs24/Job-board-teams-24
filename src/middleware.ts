@@ -7,10 +7,9 @@ const rateLimitMap = new Map();
 export async function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl;
 
-    // 1. Rate Limiting for /api
     if (pathname.startsWith('/api')) {
         const ip = request.headers.get('x-forwarded-for') || 'unknown';
-        const limit = 60; // Increased limit slightly
+        const limit = 60;
         const windowMs = 60 * 1000;
 
         if (!rateLimitMap.has(ip)) {
@@ -32,50 +31,38 @@ export async function middleware(request: NextRequest) {
         ipData.count += 1;
     }
 
-    // 2. Auth & RBAC for /admin
     if (pathname.startsWith('/admin')) {
         const token = request.cookies.get('auth_token')?.value;
 
-        // Valid Token Check
         let payload = null;
         if (token) {
             payload = await verifyJWT(token);
         }
 
-        // Case A: User is NOT logged in
         if (!payload) {
-            // If trying to access /admin (login page), let them pass
             if (pathname === '/admin') {
                 return NextResponse.next();
             }
-            // If trying to access protected admin routes, redirect to login (/admin)
             return NextResponse.redirect(new URL('/admin', request.url));
         }
 
-        // Case B: User IS logged in
-        // If they are at the login page, redirect to dashboard
         if (pathname === '/admin') {
             return NextResponse.redirect(new URL('/admin/jobs', request.url));
         }
 
         const role = payload.role as string;
 
-        // Strict RBAC Rules
         if (pathname.startsWith('/admin/admin-management')) {
             if (role !== 'SUPER_ADMIN') {
-                // Unauthorized for this specific page
                 return NextResponse.redirect(new URL('/admin/jobs', request.url));
             }
         }
 
-        // Allow access to other /admin routes for SUPER_ADMIN, ADMIN, HR
         if (!['SUPER_ADMIN', 'ADMIN', 'HR'].includes(role)) {
-            // Invalid role? Logout/Login
             return NextResponse.redirect(new URL('/admin', request.url));
         }
     }
 
-    // 3. Legacy /login Redirect
     if (pathname === '/login') {
         return NextResponse.redirect(new URL('/admin', request.url));
     }

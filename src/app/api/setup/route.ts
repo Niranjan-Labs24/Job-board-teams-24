@@ -8,7 +8,6 @@ export async function GET() {
         const schemaPath = path.join(process.cwd(), 'src', 'lib', 'auth-schema.sql');
         const sql = fs.readFileSync(schemaPath, 'utf8');
 
-        
         await execute(sql);
 
         return NextResponse.json({ success: true, message: 'Auth Schema migrated and Super Admin seeded.' });
