@@ -107,6 +107,7 @@ export default function AdminJobsClient({ initialJobs, initialTemplates, serverE
   const [isTemplateAction, setIsTemplateAction] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'jobs' | 'templates'>('jobs');
   const [error, setError] = useState<string | null>(serverError);
+  const [editingJobId, setEditingJobId] = useState<string | null>(null);
 
   // Refresh data when filter changes (client-side only after initial load)
   useEffect(() => {
@@ -150,8 +151,11 @@ export default function AdminJobsClient({ initialJobs, initialTemplates, serverE
     setCreating(true);
     
     try {
-      const response = await fetch('/api/jobs', {
-        method: 'POST',
+      const url = editingJobId ? `/api/jobs/${editingJobId}` : '/api/jobs';
+      const method = editingJobId ? 'PUT' : 'POST';
+
+      const response = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
@@ -166,12 +170,43 @@ export default function AdminJobsClient({ initialJobs, initialTemplates, serverE
       if (response.ok) {
         setShowCreateModal(false);
         setFormData(initialFormData);
+        setEditingJobId(null);
         fetchJobs();
       }
     } catch (error) {
-      console.error('Error creating job:', error);
+      console.error('Error saving job:', error);
     } finally {
       setCreating(false);
+    }
+  };
+
+  const handleEditJob = async (jobId: string) => {
+    try {
+      const response = await fetch(`/api/jobs/${jobId}`);
+      if (response.ok) {
+        const job = await response.json();
+        setFormData({
+            title: job.title,
+            type: job.type,
+            location: job.location,
+            salary_min: job.salary_min || '',
+            salary_max: job.salary_max || '',
+            description: job.description || '',
+            requirements: Array.isArray(job.requirements) ? job.requirements.join('\n') : job.requirements || '',
+            responsibilities: Array.isArray(job.responsibilities) ? job.responsibilities.join('\n') : job.responsibilities || '',
+            benefits: Array.isArray(job.benefits) ? job.benefits.join('\n') : job.benefits || '',
+            application_deadline: job.application_deadline ? new Date(job.application_deadline).toISOString().split('T')[0] : '',
+            category: job.category || '',
+            color: job.color || '#3B82F6',
+            currency: job.currency || 'USD',
+            status: job.status
+        });
+        setEditingJobId(jobId);
+        setShowCreateModal(true);
+        setActiveMenu(null);
+      }
+    } catch (error) {
+       console.error('Error fetching job details:', error);
     }
   };
 
@@ -258,6 +293,22 @@ export default function AdminJobsClient({ initialJobs, initialTemplates, serverE
       }
     } catch (error) {
       console.error('Error updating job status:', error);
+    } finally {
+      setIsUpdatingStatus(null);
+      setActiveMenu(null);
+    }
+  };
+
+  const handleDeleteJob = async (jobId: string) => {
+    if (!confirm('Are you sure you want to delete this job permanently? This action cannot be undone.')) return;
+    setIsUpdatingStatus(jobId);
+    try {
+      const response = await fetch(`/api/jobs/${jobId}`, { method: 'DELETE' });
+      if (response.ok) {
+        fetchJobs();
+      }
+    } catch (error) {
+      console.error('Error deleting job:', error);
     } finally {
       setIsUpdatingStatus(null);
       setActiveMenu(null);
@@ -486,7 +537,8 @@ export default function AdminJobsClient({ initialJobs, initialTemplates, serverE
         </div>
 
         {/* Jobs List */}
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        {/* Jobs List */}
+        <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
@@ -498,7 +550,7 @@ export default function AdminJobsClient({ initialJobs, initialTemplates, serverE
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {filteredJobs.map(job => {
+              {filteredJobs.map((job, index) => {
                 const days = getDaysUntilDeadline(job.application_deadline);
                 const isClosingSoon = days !== null && days >= 0 && days <= 7;
                 const config = statusConfig[job.status];
@@ -567,7 +619,7 @@ export default function AdminJobsClient({ initialJobs, initialTemplates, serverE
                         </button>
                         
                         {activeMenu === job.id && (
-                          <div className="absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+                          <div className={`absolute right-0 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50 ${index >= filteredJobs.length - 2 ? 'bottom-full mb-1' : 'mt-1'}`}>
                             <button
                               onClick={() => router.push(`/admin/jobs/${job.slug}`)}
                               className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
@@ -581,6 +633,16 @@ export default function AdminJobsClient({ initialJobs, initialTemplates, serverE
                             >
                               <Eye className="w-4 h-4" />
                               View Job Page
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEditJob(job.id);
+                              }}
+                              className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
+                            >
+                              <Edit className="w-4 h-4" />
+                              Edit Job
                             </button>
                             <hr className="my-1" />
                             {job.status === 'published' && (
@@ -612,20 +674,34 @@ export default function AdminJobsClient({ initialJobs, initialTemplates, serverE
                               </button>
                             )}
                             {job.status === 'draft' && (
-                              <button
-                                onClick={() => handleStatusChange(job.id, 'published')}
-                                disabled={isUpdatingStatus === job.id}
-                                className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 group disabled:opacity-50"
-                              >
-                                {isUpdatingStatus === job.id ? (
-                                  <Loader2 className="w-4 h-4 animate-spin" />
-                                ) : (
-                                  <Play className="w-4 h-4" />
-                                )}
-                                Publish Job
-                              </button>
+                              <>
+                                <button
+                                  onClick={() => handleStatusChange(job.id, 'published')}
+                                  disabled={isUpdatingStatus === job.id}
+                                  className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 group disabled:opacity-50"
+                                >
+                                  {isUpdatingStatus === job.id ? (
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                  ) : (
+                                    <Play className="w-4 h-4" />
+                                  )}
+                                  Publish Job
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteJob(job.id)}
+                                  disabled={isUpdatingStatus === job.id}
+                                  className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 text-red-600 group disabled:opacity-50"
+                                >
+                                  {isUpdatingStatus === job.id ? (
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                  ) : (
+                                    <Trash2 className="w-4 h-4" />
+                                  )}
+                                  Delete Draft
+                                </button>
+                              </>
                             )}
-                            {job.status !== 'closed' && job.status !== 'archived' && (
+                            {job.status !== 'closed' && job.status !== 'archived' && job.status !== 'draft' && (
                               <button
                                 onClick={() => handleStatusChange(job.id, 'closed')}
                                 disabled={isUpdatingStatus === job.id}
@@ -637,6 +713,20 @@ export default function AdminJobsClient({ initialJobs, initialTemplates, serverE
                                   <Archive className="w-4 h-4" />
                                 )}
                                 Close Job
+                              </button>
+                            )}
+                            {job.status === 'closed' && (
+                              <button
+                                onClick={() => handleDeleteJob(job.id)}
+                                disabled={isUpdatingStatus === job.id}
+                                className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 text-red-600 group disabled:opacity-50"
+                              >
+                                {isUpdatingStatus === job.id ? (
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                  <Trash2 className="w-4 h-4" />
+                                )}
+                                Delete Job
                               </button>
                             )}
                           </div>
@@ -817,7 +907,9 @@ export default function AdminJobsClient({ initialJobs, initialTemplates, serverE
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-6 z-50">
           <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
-              <h2 className="text-xl font-semibold">{activeTab === 'templates' ? 'Create Template' : 'Create New Job'}</h2>
+              <h2 className="text-xl font-semibold">
+                {activeTab === 'templates' ? 'Create Template' : (editingJobId ? 'Edit Job' : 'Create New Job')}
+              </h2>
               <button
                 onClick={() => {
                   setShowCreateModal(false);
@@ -1055,7 +1147,7 @@ export default function AdminJobsClient({ initialJobs, initialTemplates, serverE
                   ) : (
                     <>
                       <Plus className="w-4 h-4" />
-                      {activeTab === 'templates' ? 'Save Template' : 'Create Job'}
+                      {activeTab === 'templates' ? 'Save Template' : (editingJobId ? 'Update Job' : 'Create Job')}
                     </>
                   )}
                 </button>
