@@ -149,7 +149,7 @@ export default function CareersPage() {
             return (
               <Link
                 key={job.id}
-                href={`/careers/${job.slug}`}
+                href={`/${job.slug}`}
                 className="group relative bg-[#fafafa] border-b border-gray-200 p-5 md:p-8 hover:bg-gray-100/50 transition-all duration-300 flex items-center justify-between gap-4 md:gap-8"
               >
                 <div className="flex items-center gap-4 md:gap-6 relative z-10 flex-1 min-w-0">

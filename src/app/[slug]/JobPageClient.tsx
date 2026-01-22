@@ -128,7 +128,7 @@ export default function JobPageClient({ job }: JobPageClientProps) {
             <div className="flex items-center gap-4 w-full md:w-auto">
               <ShareButton 
                 title={`${job.title} at Teams 24`}
-                url={`/careers/${job.slug}`}
+                url={`/${job.slug}`}
                 description={job.description?.substring(0, 200)}
               />
               {!deadlinePassed && (

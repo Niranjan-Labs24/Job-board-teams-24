@@ -239,7 +239,7 @@ export default function JobApplicationsPage() {
             </div>
             <div className="flex items-center gap-3">
               <a
-                href={`/careers/${job.slug}`}
+                href={`/${job.slug}`}
                 target="_blank"
                 className="flex items-center gap-2 px-3 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
               >

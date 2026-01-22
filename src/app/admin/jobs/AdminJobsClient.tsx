@@ -576,7 +576,7 @@ export default function AdminJobsClient({ initialJobs, initialTemplates, serverE
                               View Applications
                             </button>
                             <button
-                              onClick={() => router.push(`/careers/${job.slug}`)}
+                              onClick={() => router.push(`/${job.slug}`)}
                               className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
                             >
                               <Eye className="w-4 h-4" />
