@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getJobById, getJobBySlug, updateJob, deleteJob } from '@/lib/db';
 import { generateSlug } from '@/lib/types';
+import { revalidatePath } from 'next/cache';
 
 // GET single job by ID or slug
 export async function GET(
@@ -69,6 +70,16 @@ export async function PUT(
       return NextResponse.json({ error: 'Job not found' }, { status: 404 });
     }
 
+    // Revalidate paths to reflect updates
+    revalidatePath('/');
+    revalidatePath('/careers');
+    revalidatePath(`/${job.slug}`);
+
+    // Also revalidate the old slug if it was changed
+    if (body.title && job.slug) {
+    
+    }
+
     return NextResponse.json(job);
   } catch (error) {
     console.error('Error updating job:', error);
@@ -84,7 +95,15 @@ export async function DELETE(
   try {
     const { id } = await params;
 
+    const job = await getJobById(id);
     await deleteJob(id);
+
+    // Revalidate paths after deletion
+    revalidatePath('/');
+    revalidatePath('/careers');
+    if (job?.slug) {
+      revalidatePath(`/${job.slug}`);
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getJobs, createJob } from '@/lib/db';
 import { generateSlug } from '@/lib/types';
+import { revalidatePath } from 'next/cache';
 
 
 export const revalidate = 60;
@@ -55,6 +56,10 @@ export async function POST(request: NextRequest) {
     };
 
     const job = await createJob(jobData);
+
+    // Revalidate paths to reflect the new job
+    revalidatePath('/');
+    revalidatePath('/careers');
 
     return NextResponse.json(job, { status: 201 });
   } catch (error) {
