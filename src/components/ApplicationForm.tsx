@@ -99,6 +99,10 @@ export function ApplicationForm({
         resumeUrl = await uploadResume(resume);
       }
 
+      if (!resumeUrl) {
+        throw new Error("Failed to upload resume. Please try again.");
+      }
+
       const applicationData = {
         job_id: job.id,
         name: formData.fullName,
