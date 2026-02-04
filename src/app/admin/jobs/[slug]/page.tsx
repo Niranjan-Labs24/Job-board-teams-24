@@ -359,41 +359,6 @@ export default function JobApplicationsPage() {
                             <h3 className="font-semibold text-gray-900 text-sm truncate">{app.name}</h3>
                             <p className="text-[11px] text-gray-500 truncate">{app.email}</p>
                           </div>
-                          <div className="relative">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setActiveMenu(activeMenu === app.id ? null : app.id);
-                              }}
-                              className="p-1 hover:bg-gray-100 rounded transition-colors"
-                            >
-                              <MoreVertical className="w-3.5 h-3.5 text-gray-400" />
-                            </button>
-                            
-                            {activeMenu === app.id && (
-                              <div className="absolute right-0 mt-1 w-40 bg-white rounded-lg shadow-xl border border-gray-200 py-1 z-50">
-                                <div className="px-3 py-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-widest bg-gray-50/50">Move to</div>
-                                {stages.filter(s => s !== stage).map(s => (
-                                  <button
-                                    key={s}
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleStageChange(app.id, s);
-                                    }}
-                                    disabled={isUpdatingStage === app.id}
-                                    className="w-full px-3 py-1.5 text-left text-xs hover:bg-indigo-50 hover:text-indigo-600 flex items-center gap-2 group/item disabled:opacity-50"
-                                  >
-                                    {isUpdatingStage === app.id ? (
-                                      <Loader2 className="w-2.5 h-2.5 animate-spin" />
-                                    ) : (
-                                      <ChevronRight className="w-2.5 h-2.5 text-gray-300 group-hover/item:text-indigo-600" />
-                                    )}
-                                    {stageConfig[s]?.label}
-                                  </button>
-                                ))}
-                              </div>
-                            )}
-                          </div>
                         </div>
                         
                         <div className="flex items-center gap-1 mb-2">

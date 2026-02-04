@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { 
   Briefcase, Users, Plus, Search, Filter, MoreVertical,
@@ -108,6 +109,12 @@ export default function AdminJobsClient({ initialJobs, initialTemplates, serverE
   const [activeTab, setActiveTab] = useState<'jobs' | 'templates'>('jobs');
   const [error, setError] = useState<string | null>(serverError);
   const [editingJobId, setEditingJobId] = useState<string | null>(null);
+  const [menuAnchor, setMenuAnchor] = useState<{ top: number, left: number } | null>(null);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // Refresh data when filter changes (client-side only after initial load)
   useEffect(() => {
@@ -611,24 +618,42 @@ export default function AdminJobsClient({ initialJobs, initialTemplates, serverE
                     <td className="px-6 py-4 text-right" onClick={(e) => e.stopPropagation()}>
                       <div className="relative">
                         <button
-                          onClick={() => setActiveMenu(activeMenu === job.id ? null : job.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            setMenuAnchor({ top: rect.bottom, left: rect.right });
+                            setActiveMenu(activeMenu === job.id ? null : job.id);
+                          }}
                           className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
                           data-testid={`job-menu-${job.id}`}
                         >
                           <MoreVertical className="w-4 h-4 text-gray-500" />
                         </button>
                         
-                        {activeMenu === job.id && (
-                          <div className={`absolute right-0 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50 ${index >= filteredJobs.length - 2 ? 'bottom-full mb-1' : 'mt-1'}`}>
+                        {isMounted && activeMenu === job.id && menuAnchor && createPortal(
+                          <div 
+                            className="fixed w-48 bg-white rounded-lg shadow-2xl border border-gray-200 py-1 z-[9999]"
+                            style={{ 
+                              top: `${(menuAnchor.top + 250 > window.innerHeight) ? menuAnchor.top - 250 : menuAnchor.top + 5}px`, 
+                              left: `${menuAnchor.left - 192}px` 
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                          >
                             <button
-                              onClick={() => router.push(`/admin/jobs/${job.slug}`)}
+                              onClick={() => {
+                                router.push(`/admin/jobs/${job.slug}`);
+                                setActiveMenu(null);
+                              }}
                               className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
                             >
                               <Eye className="w-4 h-4" />
                               View Applications
                             </button>
                             <button
-                              onClick={() => router.push(`/${job.slug}`)}
+                              onClick={() => {
+                                router.push(`/${job.slug}`);
+                                setActiveMenu(null);
+                              }}
                               className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
                             >
                               <Eye className="w-4 h-4" />
@@ -729,7 +754,8 @@ export default function AdminJobsClient({ initialJobs, initialTemplates, serverE
                                 Delete Job
                               </button>
                             )}
-                          </div>
+                          </div>,
+                          document.body
                         )}
                       </div>
                     </td>
