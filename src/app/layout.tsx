@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Manrope } from 'next/font/google';
 import './globals.css';
+import Script from 'next/script';
 
 const manrope = Manrope({ subsets: ['latin'] });
 
@@ -30,7 +31,21 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={manrope.className}>{children}</body>
+      <body className={manrope.className}>
+        {children}
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=G-W5600BXJZT"
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-W5600BXJZT');
+          `}
+        </Script>
+      </body>
     </html>
   );
 }
