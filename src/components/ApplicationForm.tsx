@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import { X, ArrowLeft, Upload, Loader2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { X, ArrowLeft, Upload, Loader2, Linkedin } from "lucide-react";
 import { createClient } from "@supabase/supabase-js";
+import { useSearchParams, useRouter } from "next/navigation";
 import { Job } from "./JobLanding";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -23,6 +24,9 @@ export function ApplicationForm({
   onBack,
   isStandalone = false,
 }: ApplicationFormProps) {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
@@ -31,6 +35,27 @@ export function ApplicationForm({
     portfolio: "",
     coverLetter: "",
   });
+
+  /* 
+  useEffect(() => {
+    const name = searchParams.get('name');
+    const email = searchParams.get('email');
+    const linkedinUrl = searchParams.get('linkedinUrl');
+    
+    if (name || email || linkedinUrl) {
+      setFormData(prev => ({
+        ...prev,
+        fullName: name || prev.fullName,
+        email: email || prev.email,
+        linkedIn: linkedinUrl || prev.linkedIn
+      }));
+      
+      // Clean up URL
+      const newPath = window.location.pathname;
+      router.replace(newPath);
+    }
+  }, [searchParams, router]);
+  */
   const [resume, setResume] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -248,6 +273,24 @@ export function ApplicationForm({
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="px-8 py-10 space-y-8">
+        {/* Apply with LinkedIn Button - Temporarily Disabled
+        <div className="pb-4 border-b border-gray-100">
+          <button
+            type="button"
+            onClick={() => {
+              window.location.href = `/api/auth/linkedin?jobId=${job.id}&jobSlug=${job.slug}`;
+            }}
+            className="w-full flex items-center justify-center gap-3 py-4 border-2 border-[#0077B5] text-[#0077B5] rounded-2xl font-bold hover:bg-[#0077B5] hover:text-white transition-all group shadow-sm hover:shadow-md"
+          >
+            <Linkedin className="w-5 h-5 fill-current" />
+            Apply with LinkedIn
+          </button>
+          <div className="relative mt-6 text-center">
+            <span className="px-4 bg-white text-gray-400 text-sm font-medium relative z-10 uppercase tracking-widest">or apply manually</span>
+            <div className="absolute top-1/2 left-0 w-full h-px bg-gray-100 -z-0"></div>
+          </div>
+        </div>
+        */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <div>
             <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wider">
