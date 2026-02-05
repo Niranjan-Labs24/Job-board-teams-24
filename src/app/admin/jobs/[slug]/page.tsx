@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { 
   ArrowLeft, Users, Search, Filter, LayoutGrid, Table as TableIcon,
   Star, Mail, FileText, Eye, MoreVertical, ChevronRight, Loader2,
-  CheckSquare, Square, Clock, Edit, ExternalLink, X
+  CheckSquare, Square, Clock, Edit, ExternalLink, X, Trash2
 } from 'lucide-react';
 
 interface Job {
@@ -36,6 +36,7 @@ interface Application {
   linkedin?: string;
   portfolio?: string;
   resume_url?: string;
+  cover_letter?: string;
 }
 
 const stageConfig: Record<string, { label: string; bg: string; text: string }> = {
@@ -68,6 +69,9 @@ export default function JobApplicationsPage() {
   const [isUpdatingStage, setIsUpdatingStage] = useState<string | null>(null);
   const [isChangingStage, setIsChangingStage] = useState(false);
   const [isNavigating, setIsNavigating] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [appToDelete, setAppToDelete] = useState<Application | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -135,6 +139,24 @@ export default function JobApplicationsPage() {
       console.error('Error updating rating:', error);
     } finally {
       setIsUpdatingRating(false);
+    }
+  };
+
+  const handleDeleteApplication = async (id: string) => {
+    setIsDeleting(true);
+    try {
+      const response = await fetch(`/api/applications/${id}`, {
+        method: 'DELETE',
+      });
+      if (response.ok) {
+        setApplications(prev => prev.filter(app => app.id !== id));
+        setIsDeleteDialogOpen(false);
+        setAppToDelete(null);
+      }
+    } catch (error) {
+      console.error('Error deleting application:', error);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -354,12 +376,23 @@ export default function JobApplicationsPage() {
                         className="bg-white rounded-2xl p-4 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.1)] border border-gray-100 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:-translate-y-1 transition-all duration-300 cursor-pointer relative group"
                         data-testid={`candidate-card-${app.id}`}
                       >
-                        <div className="flex items-start justify-between mb-2">
-                          <div className="min-w-0">
-                            <h3 className="font-semibold text-gray-900 text-sm truncate">{app.name}</h3>
-                            <p className="text-[11px] text-gray-500 truncate">{app.email}</p>
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="min-w-0">
+                              <h3 className="font-semibold text-gray-900 text-sm truncate">{app.name}</h3>
+                              <p className="text-[11px] text-gray-500 truncate">{app.email}</p>
+                            </div>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setAppToDelete(app);
+                                setIsDeleteDialogOpen(true);
+                              }}
+                              className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                              title="Delete Candidate"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
                           </div>
-                        </div>
                         
                         <div className="flex items-center gap-1 mb-2">
                           {renderStars(app.rating)}
@@ -370,16 +403,13 @@ export default function JobApplicationsPage() {
                           <span>Applied {new Date(app.applied_at).toLocaleDateString()}</span>
                         </div>
                         
-                        {(app.linkedin || app.portfolio || app.resume_url) && (
+                        {(app.linkedin || app.resume_url) && (
                           <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100">
                             {app.resume_url && (
                               <span className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-xs">Resume</span>
                             )}
                             {app.linkedin && (
                               <span className="px-2 py-0.5 bg-blue-50 text-blue-600 rounded text-xs">LinkedIn</span>
-                            )}
-                            {app.portfolio && (
-                              <span className="px-2 py-0.5 bg-purple-50 text-purple-600 rounded text-xs">Portfolio</span>
                             )}
                           </div>
                         )}
@@ -427,15 +457,20 @@ export default function JobApplicationsPage() {
                 {filteredApps.map(app => (
                   <tr 
                     key={app.id} 
-                    className="hover:bg-indigo-50/30 transition-colors group"
+                    onClick={() => openDrawer(app)}
+                    className="hover:bg-indigo-50/30 transition-colors group cursor-pointer"
                   >
                     <td className="px-4 py-3">
-                      <input
-                        type="checkbox"
-                        className="rounded border-gray-300"
-                        checked={selectedIds.has(app.id)}
-                        onChange={() => toggleSelection(app.id)}
-                      />
+                        <input
+                          type="checkbox"
+                          className="rounded border-gray-300"
+                          checked={selectedIds.has(app.id)}
+                          onChange={(e) => {
+                            e.stopPropagation();
+                            toggleSelection(app.id);
+                          }}
+                          onClick={(e) => e.stopPropagation()}
+                        />
                     </td>
                     <td className="px-4 py-3">
                       <div>
@@ -499,14 +534,16 @@ export default function JobApplicationsPage() {
                         <button 
                           onClick={(e) => {
                             e.stopPropagation();
-                            openDrawer(app);
+                            setAppToDelete(app);
+                            setIsDeleteDialogOpen(true);
                           }}
-                          className="p-2 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg transition-all active:scale-90" 
-                          title="View Details"
+                          className="p-2 hover:bg-red-50 hover:text-red-600 rounded-lg transition-all active:scale-90" 
+                          title="Delete Candidate"
                         >
-                          <Eye className="w-4 h-4" />
+                          <Trash2 className="w-4 h-4" />
                         </button>
                         <button 
+                          onClick={(e) => e.stopPropagation()}
                           className="p-2 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg transition-all active:scale-90" 
                           title="Send Email"
                         >
@@ -528,128 +565,183 @@ export default function JobApplicationsPage() {
         )}
       </div>
 
-      {/* Applicant Detail Drawer */}
+      {/* Applicant Detail Modal */}
       <div 
-        className={`fixed inset-0 z-50 transition-opacity duration-300 ${isDrawerOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+        className={`fixed inset-0 z-50 flex items-center justify-center p-4 transition-opacity duration-300 ${isDrawerOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
       >
-        <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={() => setIsDrawerOpen(false)} />
+        <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setIsDrawerOpen(false)} />
         <div 
-          className={`absolute right-0 top-0 h-full w-full max-w-lg bg-white shadow-2xl transition-transform duration-300 transform ${isDrawerOpen ? 'translate-x-0' : 'translate-x-full'} flex flex-col`}
+          className={`bg-white rounded-[32px] shadow-2xl w-full max-w-4xl max-h-[95vh] overflow-hidden relative z-10 transition-all duration-300 transform ${isDrawerOpen ? 'scale-100 translate-y-0 opacity-100' : 'scale-95 translate-y-4 opacity-0'} flex flex-col`}
         >
           {selectedApp && (
             <>
-              <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-white sticky top-0 z-10">
-                <h2 className="text-xl font-bold text-gray-900 tracking-tight">Applicant Details</h2>
+              <div className="p-8 border-b border-gray-100 flex items-center justify-between bg-white">
+                <h2 className="text-2xl font-bold text-gray-900 tracking-tight">Applicant Details</h2>
                 <button 
                   onClick={() => setIsDrawerOpen(false)}
-                  className="p-2 hover:bg-gray-100 rounded-full transition-all hover:rotate-90"
+                  className="p-2.5 hover:bg-gray-100 rounded-2xl transition-all hover:rotate-90 group"
                 >
-                  <X className="w-6 h-6 text-gray-400" />
+                  <X className="w-6 h-6 text-gray-400 group-hover:text-gray-900" />
                 </button>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-8 space-y-8 bg-slate-50/50">
+              <div className="flex-1 overflow-y-auto p-8 space-y-8 no-scrollbar">
                 {/* Profile Header */}
-                <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-2xl font-bold">
+                <div className="flex items-center gap-6">
+                  <div className="w-20 h-20 bg-indigo-100 text-indigo-600 rounded-3xl flex items-center justify-center text-3xl font-bold shadow-inner">
                     {selectedApp.name.charAt(0)}
                   </div>
                   <div>
-                    <h3 className="text-2xl font-bold text-gray-900">{selectedApp.name}</h3>
-                    <p className="text-gray-500">{selectedApp.email}</p>
-                  </div>
-                </div>
-
-                {/* Rating Section */}
-                <div className="bg-gray-50 rounded-2xl p-6">
-                  <h4 className="text-sm font-semibold text-gray-500 uppercase mb-4 tracking-wider text-center">Current Rating</h4>
-                  <div className="flex flex-col items-center gap-3">
-                    {renderStars(selectedApp.rating, true, (r) => handleRatingChange(selectedApp.id, r))}
-                    <p className="text-3xl font-bold text-gray-900">{formatRating(selectedApp.rating)}</p>
-                    {isUpdatingRating && <span className="text-xs text-indigo-600 animate-pulse">Updating...</span>}
-                  </div>
-                </div>
-
-                {/* Status Section */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Applied on</p>
-                    <p className="text-gray-900 font-medium">{new Date(selectedApp.applied_at).toLocaleDateString()}</p>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Current Stage</p>
-                    <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${stageConfig[selectedApp.stage]?.bg} ${stageConfig[selectedApp.stage]?.text}`}>
-                      {stageConfig[selectedApp.stage]?.label}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Contact & Links */}
-                <div className="space-y-4 pt-4 border-t border-gray-100">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
-                      <Mail className="w-5 h-5 text-gray-600" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500">Email</p>
-                      <a href={`mailto:${selectedApp.email}`} className="text-indigo-600 hover:underline font-medium">{selectedApp.email}</a>
-                    </div>
-                  </div>
-                  {selectedApp.phone && (
+                    <h3 className="text-3xl font-bold text-gray-900 mb-1">{selectedApp.name}</h3>
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
-                        <Users className="w-5 h-5 text-gray-600" />
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500">Phone</p>
-                        <p className="text-gray-900 font-medium">{selectedApp.phone}</p>
-                      </div>
+                      <span className={`px-3 py-1 rounded-xl text-xs font-bold uppercase tracking-wide shadow-sm ${stageConfig[selectedApp.stage]?.bg} ${stageConfig[selectedApp.stage]?.text}`}>
+                        {stageConfig[selectedApp.stage]?.label}
+                      </span>
+                      <span className="text-gray-400 font-medium text-sm">• Applied {new Date(selectedApp.applied_at).toLocaleDateString()}</span>
                     </div>
-                  )}
-                  {selectedApp.linkedin && (
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
-                        <ExternalLink className="w-5 h-5 text-blue-600" />
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500">LinkedIn</p>
-                        <a href={selectedApp.linkedin} target="_blank" className="text-blue-600 hover:underline font-medium">View Profile</a>
-                      </div>
-                    </div>
-                  )}
+                  </div>
                 </div>
 
-                {/* Documents */}
-                <div className="space-y-4 pt-4 border-t border-gray-100">
-                  <h4 className="text-lg font-bold text-gray-900">Documents</h4>
-                  {selectedApp.resume_url ? (
-                    <div className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-red-50 rounded-lg flex items-center justify-center">
-                          <FileText className="w-5 h-5 text-red-600" />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-4">
+                  {/* Rating & Stats Section */}
+                  <div className="space-y-6">
+                    <div className="bg-gray-50/80 rounded-3xl p-6 border border-gray-100/50">
+                      <h4 className="text-xs font-bold text-gray-400 uppercase mb-4 tracking-widest">Candidate Rating</h4>
+                      <div className="flex flex-col items-center gap-4 py-2">
+                        {renderStars(selectedApp.rating, true, (r) => handleRatingChange(selectedApp.id, r))}
+                        <div className="flex items-baseline gap-1">
+                          <p className="text-4xl font-black text-gray-900">{formatRating(selectedApp.rating)}</p>
+                          <span className="text-gray-400 font-bold text-sm">/ 5.0</span>
                         </div>
-                        <div>
-                          <p className="font-medium text-gray-900">Resume.pdf</p>
-                          <p className="text-xs text-gray-500">Click to download</p>
-                        </div>
+                        {isUpdatingRating && <span className="text-[10px] font-bold text-indigo-600 animate-pulse uppercase tracking-wider">Updating Profile...</span>}
                       </div>
-                      <a 
-                        href={selectedApp.resume_url}
-                        download
-                        target="_blank"
-                        className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-indigo-600"
-                        title="Download Resume"
-                      >
-                        <ExternalLink className="w-5 h-5" />
-                      </a>
                     </div>
-                  ) : (
-                    <p className="text-gray-500 italic">No resume uploaded</p>
-                  )}
+
+                    <div className="space-y-4">
+                      <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest px-2">Contact Details</h4>
+                      <div className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm space-y-4">
+                        <div className="flex items-center gap-4">
+                          <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center">
+                            <Mail className="w-5 h-5 text-indigo-600" />
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Email</p>
+                            <a href={`mailto:${selectedApp.email}`} className="text-gray-900 font-semibold hover:text-indigo-600 transition-colors truncate block max-w-[200px]">{selectedApp.email}</a>
+                          </div>
+                        </div>
+                        {selectedApp.phone && (
+                          <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center">
+                              <Users className="w-5 h-5 text-emerald-600" />
+                            </div>
+                            <div>
+                              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Phone</p>
+                              <p className="text-gray-900 font-semibold">{selectedApp.phone}</p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Documents & Links Section */}
+                  <div className="space-y-6">
+                    <div className="space-y-4">
+                      <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest px-2">Documents</h4>
+                      {selectedApp.resume_url ? (
+                        <div className="group relative bg-white border border-gray-100 rounded-3xl p-5 hover:border-indigo-200 transition-all hover:shadow-xl hover:shadow-indigo-500/5 cursor-pointer overflow-hidden">
+                          <div className="absolute top-0 right-0 w-24 h-24 bg-red-50 rounded-bl-[100px] -mr-12 -mt-12 transition-all group-hover:scale-110" />
+                          <div className="flex items-center gap-4 relative z-10">
+                            <div className="w-12 h-12 bg-red-100 rounded-2xl flex items-center justify-center shadow-lg shadow-red-100">
+                              <FileText className="w-6 h-6 text-red-600" />
+                            </div>
+                            <div>
+                              <p className="font-bold text-gray-900">Resume.pdf</p>
+                              <p className="text-xs text-gray-400 font-medium">Standard applicant resume</p>
+                            </div>
+                          </div>
+                          <div className="mt-6 flex gap-2 relative z-10">
+                            <a 
+                              href={selectedApp.resume_url}
+                              download
+                              target="_blank"
+                              className="flex-1 bg-red-50 text-red-600 py-2.5 rounded-xl text-xs font-extrabold hover:bg-red-600 hover:text-white transition-all text-center uppercase tracking-widest"
+                            >
+                              Download
+                            </a>
+                            <a 
+                              href={selectedApp.resume_url}
+                              target="_blank"
+                              className="bg-gray-50 text-gray-400 p-2.5 rounded-xl hover:bg-gray-100 transition-all"
+                            >
+                              <ExternalLink className="w-5 h-5" />
+                            </a>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="bg-gray-50/50 border-2 border-dashed border-gray-200 rounded-3xl p-10 text-center">
+                          <FileText className="w-10 h-10 text-gray-300 mx-auto mb-3" />
+                          <p className="text-sm font-bold text-gray-400 uppercase tracking-wider">No Resume Uploaded</p>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="space-y-4">
+                      <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest px-2">Professional Links</h4>
+                      <div className="grid grid-cols-1 gap-3">
+                        {selectedApp.linkedin && (
+                          <a 
+                            href={selectedApp.linkedin} 
+                            target="_blank" 
+                            className="flex items-center justify-between p-4 bg-blue-50/30 border border-blue-100 rounded-2xl hover:bg-blue-50 transition-all group"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                                <ExternalLink className="w-4 h-4 text-blue-600" />
+                              </div>
+                              <span className="text-sm font-bold text-blue-900 uppercase tracking-tight">LinkedIn Profile</span>
+                            </div>
+                            <ChevronRight className="w-4 h-4 text-blue-400 group-hover:translate-x-1 transition-transform" />
+                          </a>
+                        )}
+                        {selectedApp.portfolio && (
+                          <a 
+                            href={selectedApp.portfolio} 
+                            target="_blank" 
+                            className="flex items-center justify-between p-4 bg-purple-50/30 border border-purple-100 rounded-2xl hover:bg-purple-50 transition-all group"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
+                                <LayoutGrid className="w-4 h-4 text-purple-600" />
+                              </div>
+                              <span className="text-sm font-bold text-purple-900 uppercase tracking-tight">Portfolio Website</span>
+                            </div>
+                            <ChevronRight className="w-4 h-4 text-purple-400 group-hover:translate-x-1 transition-transform" />
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 </div>
+                {/* Cover Letter Section */}
+                {selectedApp.cover_letter && (
+                  <div className="mt-8 space-y-4 pt-8 border-t border-gray-100">
+                    <div className="flex items-center gap-3 px-2">
+                      <div className="w-8 h-8 bg-amber-50 rounded-lg flex items-center justify-center">
+                        <FileText className="w-4 h-4 text-amber-600" />
+                      </div>
+                      <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Cover Letter</h4>
+                    </div>
+                    <div className="bg-gray-50/50 rounded-[32px] p-8 border border-gray-100/50">
+                      <p className="text-gray-700 leading-relaxed whitespace-pre-wrap italic">
+                        "{selectedApp.cover_letter}"
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
 
-              <div className="p-6 border-t border-gray-100 bg-white sticky bottom-0">
+              <div className="p-8 border-t border-gray-100 bg-white">
                 {isChangingStage ? (
                   <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
                     <h4 className="text-sm font-bold text-gray-900 px-1">Select New Stage</h4>
@@ -710,6 +802,43 @@ export default function JobApplicationsPage() {
             setActiveMenu(null);
           }}
         />
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {isDeleteDialogOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div 
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm animate-in fade-in duration-300" 
+            onClick={() => !isDeleting && setIsDeleteDialogOpen(false)} 
+          />
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full relative z-10 shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="flex flex-col items-center text-center">
+              <div className="w-14 h-14 bg-red-100 rounded-full flex items-center justify-center mb-4">
+                <Trash2 className="w-7 h-7 text-red-600" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Delete Candidate?</h3>
+              <p className="text-gray-500 mb-6">
+                Are you sure you want to delete <span className="font-semibold text-gray-800">{appToDelete?.name}</span>? This action cannot be undone.
+              </p>
+              <div className="flex gap-3 w-full">
+                <button
+                  disabled={isDeleting}
+                  onClick={() => setIsDeleteDialogOpen(false)}
+                  className="flex-1 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-xl transition-colors disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  disabled={isDeleting}
+                  onClick={() => appToDelete && handleDeleteApplication(appToDelete.id)}
+                  className="flex-1 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-xl transition-colors shadow-lg shadow-red-200 flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Delete'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

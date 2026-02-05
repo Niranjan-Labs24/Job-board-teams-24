@@ -341,13 +341,14 @@ export function ApplicationForm({
 
           <div>
              <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wider">
-              LinkedIn Profile
+              LinkedIn Profile *
             </label>
             <input
               type="url"
               name="linkedIn"
               value={formData.linkedIn}
               onChange={handleInputChange}
+              required
               className="w-full px-5 py-4 bg-gray-50 border border-transparent rounded-2xl focus:bg-white focus:border-black transition-all outline-none text-lg"
               placeholder="https://linkedin.com/in/..."
             />
