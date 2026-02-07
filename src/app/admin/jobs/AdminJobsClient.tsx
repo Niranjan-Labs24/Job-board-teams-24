@@ -406,25 +406,23 @@ export default function AdminJobsClient({ initialJobs, initialTemplates, serverE
                 </button>
               )}
 
+              <button
+                onClick={() => router.push('/admin/candidates')}
+                className="flex items-center gap-2 px-4 py-2 border border-indigo-200 bg-indigo-50 text-indigo-700 rounded-lg hover:bg-indigo-100 transition-colors"
+              >
+                 <Users className="w-4 h-4" />
+                 Candidates
+              </button>
+
               {activeTab === 'jobs' && (
-                <>
-                  <button
-                    onClick={() => setShowTemplateModal(true)}
-                    className="flex items-center gap-2 px-4 py-2 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                    data-testid="use-template-btn"
-                  >
-                    <FileText className="w-4 h-4" />
-                    Use Template
-                  </button>
-                  <button
-                    onClick={() => setShowCreateModal(true)}
-                    className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
-                    data-testid="create-job-btn"
-                  >
-                    <Plus className="w-4 h-4" />
-                    Create Job
-                  </button>
-                </>
+                <button
+                  onClick={() => setShowCreateModal(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                  data-testid="create-job-btn"
+                >
+                  <Plus className="w-4 h-4" />
+                  Create Job
+                </button>
               )}
               <button
                 onClick={async () => {

@@ -128,14 +128,22 @@ export function ApplicationForm({
         throw new Error("Failed to upload resume. Please try again.");
       }
 
+      const normalizeUrl = (url: string) => {
+        if (!url) return null;
+        const trimmed = url.trim();
+        if (!trimmed) return null;
+        if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return trimmed;
+        return `https://${trimmed}`;
+      };
+
       const applicationData = {
         job_id: job.id,
         name: formData.fullName,
         email: formData.email,
         phone: formData.phone,
         position: job.title,
-        linkedin: formData.linkedIn || null,
-        portfolio: formData.portfolio || null,
+        linkedin: normalizeUrl(formData.linkedIn),
+        portfolio: normalizeUrl(formData.portfolio),
         cover_letter: formData.coverLetter || null,
         experience: "",
         resume_url: resumeUrl,
@@ -341,15 +349,16 @@ export function ApplicationForm({
 
           <div>
              <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wider">
-              LinkedIn Profile
+              LinkedIn Profile *
             </label>
             <input
-              type="url"
+              type="text"
               name="linkedIn"
               value={formData.linkedIn}
               onChange={handleInputChange}
+              required
               className="w-full px-5 py-4 bg-gray-50 border border-transparent rounded-2xl focus:bg-white focus:border-black transition-all outline-none text-lg"
-              placeholder="https://linkedin.com/in/..."
+              placeholder="linkedin.com/in/..."
             />
           </div>
         </div>

@@ -84,18 +84,18 @@ export async function deleteJob(id: string) {
 export async function getApplications(options?: { jobId?: string; status?: string; stage?: string }) {
   let query = supabase.from('applications').select(`
     *,
-    jobs!inner(title, slug)
+    jobs(title, slug)
   `);
 
-  if (options?.jobId) {
+  if (options?.jobId && options.jobId !== 'all') {
     query = query.eq('job_id', options.jobId);
   }
 
-  if (options?.status) {
+  if (options?.status && options.status !== 'all') {
     query = query.eq('status', options.status);
   }
 
-  if (options?.stage) {
+  if (options?.stage && options.stage !== 'all') {
     query = query.eq('stage', options.stage);
   }
 
