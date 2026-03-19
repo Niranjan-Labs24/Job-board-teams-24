@@ -10,6 +10,13 @@ if (!supabaseUrl || !supabaseAnonKey) {
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export async function getJobs(options?: { status?: string; includeArchived?: boolean }) {
+  // Automatically pause expired jobs before fetching
+  try {
+    await autoPauseExpiredJobs();
+  } catch (err) {
+    console.error('Failed to auto-pause expired jobs:', err);
+  }
+
   let query = supabase.from('jobs').select('*');
 
   if (options?.status && options.status !== 'all') {
@@ -25,6 +32,47 @@ export async function getJobs(options?: { status?: string; includeArchived?: boo
   const { data, error } = await query;
   if (error) throw error;
   return data || [];
+}
+
+export async function autoPauseExpiredJobs() {
+  // 1. Fetch all published jobs that have a deadline
+  const { data: jobs, error: fetchError } = await supabase
+    .from('jobs')
+    .select('id, application_deadline, status')
+    .eq('status', 'published')
+    .not('application_deadline', 'is', null);
+
+  if (fetchError || !jobs || jobs.length === 0) return 0;
+
+  // 2. Filter expired jobs in JavaScript for reliable date comparison
+  const now = new Date();
+  const expiredJobIds = jobs
+    .filter(job => {
+      const deadline = new Date(job.application_deadline);
+      return deadline < now;
+    })
+    .map(job => job.id);
+
+  if (expiredJobIds.length === 0) return 0;
+
+  // 3. Batch update the expired jobs
+  const statusUpdateDate = new Date().toISOString();
+  const { error: updateError } = await supabase
+    .from('jobs')
+    .update({ 
+      status: 'paused',
+      status_changed_at: statusUpdateDate,
+      updated_at: statusUpdateDate
+    })
+    .in('id', expiredJobIds);
+
+  if (updateError) {
+    console.error(`Failed to auto-pause ${expiredJobIds.length} jobs:`, updateError);
+    return 0;
+  }
+  
+  console.log(`Successfully auto-paused ${expiredJobIds.length} expired jobs.`);
+  return expiredJobIds.length;
 }
 
 export async function getJobById(id: string) {
