@@ -87,7 +87,7 @@ export default function Home() {
       <div className="relative text-white overflow-hidden py-8 md:py-10 min-h-[20vh] md:min-h-[25vh] flex items-center">
         <div className="absolute inset-0">
           <img 
-            src="/background.png" 
+            src="/Background.webp" 
             alt="Background" 
             className="w-full h-full object-cover"
           />
