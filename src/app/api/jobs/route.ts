@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getJobs, createJob } from '@/lib/db';
+import { getJobs, createJob, autoPauseExpiredJobs } from '@/lib/db';
 import { generateSlug } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
 
@@ -8,6 +8,9 @@ export const revalidate = 60;
 
 export async function GET(request: NextRequest) {
   try {
+    // Automatically pause jobs that have passed their deadline
+    await autoPauseExpiredJobs();
+
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status') || undefined;
     const includeArchived = searchParams.get('includeArchived') === 'true';
