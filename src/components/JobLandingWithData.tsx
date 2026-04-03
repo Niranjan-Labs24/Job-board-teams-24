@@ -61,7 +61,7 @@ export function JobLandingWithData({ initialJobs, serverError, onAdminClick }: J
       <div className="max-w-6xl mx-auto px-6 py-24">
         <div className="flex justify-between items-center mb-4">
           <div className="flex flex-col">
-            <h2 className="text-xs font-black uppercase tracking-[0.3em] text-indigo-600 mb-2">Teams 24 Opportunities</h2>
+            <h2 className="text-xs font-black uppercase tracking-[0.3em] text-indigo-600 mb-2">Teams24 Opportunities</h2>
             <h1 className="text-5xl font-black text-gray-900 tracking-tight">Open positions</h1>
           </div>
           <button

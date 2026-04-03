@@ -83,26 +83,23 @@ export default function JobPageClient({ job }: JobPageClientProps) {
         <div className="max-w-5xl mx-auto px-6 py-8">
           <Link
             href="/"
-            onClick={() => setIsNavigating('back')}
-            className="inline-flex items-center gap-2 text-gray-400 hover:text-black mb-8 transition-all font-bold uppercase tracking-widest text-xs group disabled:opacity-70"
+            className="inline-flex items-center gap-2 text-gray-400 hover:text-black mb-8 transition-all font-bold uppercase tracking-widest text-xs group"
           >
-            {isNavigating === 'back' ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-            )}
-            {isNavigating === 'back' ? 'Loading...' : 'Back to Positions'}
+            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+            Back to Positions
           </Link>
 
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-8">
-            <div className="flex items-start gap-6">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-8 mb-12">
+            <div className="flex items-center gap-6">
               <div
-                className="w-20 h-20 rounded-full flex-shrink-0 shadow-2xl shadow-black/5 flex items-center justify-center text-white text-2xl font-black"
+                className="w-16 h-16 md:w-20 md:h-20 rounded-full flex-shrink-0 flex items-center justify-center text-white text-xl md:text-2xl font-black shadow-lg"
                 style={{ backgroundColor: job.color }}
               >
               </div>
               <div>
-                <h1 className="text-4xl font-black text-gray-900 mb-3 tracking-tight leading-tight">{job.title}</h1>
+                <h1 className="text-3xl md:text-4xl font-black text-gray-900 mb-2 tracking-tight">
+                  {job.title} at <span className="text-indigo-600">Teams24</span>
+                </h1>
                 <div className="flex flex-wrap items-center gap-6 text-gray-500 font-bold uppercase tracking-widest text-xs">
                   <span className="flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100">
                     <Briefcase className="w-4 h-4 text-indigo-500" />
@@ -127,7 +124,7 @@ export default function JobPageClient({ job }: JobPageClientProps) {
             </div>
             <div className="flex items-center gap-4 w-full md:w-auto">
               <ShareButton 
-                title={`${job.title} at Teams 24`}
+                title={`${job.title} at Teams24`}
                 url={`/${job.slug}`}
                 description={job.description?.substring(0, 200)}
               />

@@ -1,4 +1,4 @@
-# Teams 24 Careers
+# Teams24 Careers
 
 A modern job board application built with Next.js, TypeScript, and PostgreSQL.
 
