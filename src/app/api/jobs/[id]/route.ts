@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getJobById, getJobBySlug, updateJob, deleteJob } from '@/lib/db';
 import { generateSlug } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
+import { verifyJWT } from '@/lib/jwt';
 
 // GET single job by ID or slug
 export async function GET(
@@ -33,6 +34,14 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const token = request.cookies.get('auth_token')?.value;
+    if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const payload = await verifyJWT(token);
+    if (!payload || !['SUPER_ADMIN', 'ADMIN'].includes(payload.role as string)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     const { id } = await params;
     const body = await request.json();
 
@@ -40,7 +49,8 @@ export async function PUT(
       'title', 'type', 'salary_min', 'salary_max', 'location', 'color',
       'description', 'requirements', 'responsibilities', 'benefits',
       'status', 'closure_reason', 'application_deadline',
-      'meta_title', 'meta_description', 'category', 'currency'
+      'meta_title', 'meta_description', 'category', 'currency',
+      'visibility', 'hr_assignments'
     ];
 
     const updateData: Record<string, unknown> = {};
@@ -93,6 +103,14 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const token = request.cookies.get('auth_token')?.value;
+    if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const payload = await verifyJWT(token);
+    if (!payload || !['SUPER_ADMIN', 'ADMIN'].includes(payload.role as string)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     const { id } = await params;
 
     const job = await getJobById(id);

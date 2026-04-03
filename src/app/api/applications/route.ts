@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getApplications, createApplication } from '@/lib/db';
+import { verifyJWT } from '@/lib/jwt';
 
 // GET all applications
 export async function GET(request: NextRequest) {
@@ -9,7 +10,18 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status') || undefined;
     const stage = searchParams.get('stage') || undefined;
 
-    const applications = await getApplications({ jobId, status, stage });
+    const token = request.cookies.get('auth_token')?.value;
+    const payload = token ? await verifyJWT(token) : null;
+    const userId = payload?.userId as string | undefined;
+    const userRole = payload?.role as string | undefined;
+
+    const applications = await getApplications({ 
+      jobId, 
+      status, 
+      stage,
+      userId,
+      userRole
+    });
 
     return NextResponse.json(applications);
   } catch (error) {
