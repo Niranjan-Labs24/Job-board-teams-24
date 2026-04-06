@@ -54,8 +54,16 @@ CREATE TABLE IF NOT EXISTS jobs (
   category VARCHAR(100),
   currency VARCHAR(10) DEFAULT 'USD',
   applications_count INTEGER DEFAULT 0,
+  visibility VARCHAR(50) DEFAULT 'ALL_HR',
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Job HR Assignments table
+CREATE TABLE IF NOT EXISTS job_hr_assignments (
+  job_id UUID REFERENCES jobs(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  PRIMARY KEY (job_id, user_id)
 );
 
 -- Applications table

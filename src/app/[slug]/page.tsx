@@ -37,12 +37,12 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   
   if (!job) {
     return {
-      title: 'Job Not Found | Teams 24 Careers',
+      title: 'Job Not Found | Teams24 Careers',
     };
   }
 
-  const title = job.meta_title || `${job.title} | Teams 24 Careers`;
-  const description = job.meta_description || job.description?.substring(0, 160) || `Apply for ${job.title} at Teams 24`;
+  const title = job.meta_title || `${job.title} | Teams24 Careers`;
+  const description = job.meta_description || job.description?.substring(0, 160) || `Apply for ${job.title} at Teams24`;
 
   return {
     title,
@@ -51,7 +51,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       title,
       description,
       type: 'website',
-      siteName: 'Teams 24 Careers',
+      siteName: 'Teams24 Careers',
       url: `/${job.slug}`,
     },
     twitter: {
@@ -60,7 +60,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       description,
     },
     other: {
-      'application-name': 'Teams 24 Careers',
+      'application-name': 'Teams24 Careers',
     },
   };
 }
@@ -79,9 +79,9 @@ function generateJobPostingLD(job: Job) {
                     job.type === 'contract' ? 'CONTRACTOR' : 'FULL_TIME',
     hiringOrganization: {
       '@type': 'Organization',
-      name: 'Teams 24',
-      sameAs: 'https://teams24.com',
-      logo: 'https://teams24.com/logo.png',
+      name: 'Teams24',
+      sameAs: 'https://teams24.co',
+      logo: 'https://teams24.co/logo.png',
     },
     jobLocation: {
       '@type': 'Place',

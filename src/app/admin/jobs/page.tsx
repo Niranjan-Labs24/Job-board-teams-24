@@ -11,6 +11,7 @@ export default async function AdminJobsPage() {
   let templates = [];
   let serverError = null;
   let userRole = '';
+  let userId = '';
 
   try {
     const cookieStore = cookies();
@@ -20,11 +21,16 @@ export default async function AdminJobsPage() {
        const payload = await verifyJWT(token);
        if (payload) {
          userRole = payload.role as string;
+         userId = payload.userId as string;
        }
     }
 
     [jobs, templates] = await Promise.all([
-      getJobs({ includeArchived: true }),
+      getJobs({ 
+        includeArchived: true,
+        userId,
+        userRole
+      }),
       getTemplates()
     ]);
   } catch (e) {
@@ -38,6 +44,7 @@ export default async function AdminJobsPage() {
       initialTemplates={templates}
       serverError={serverError}
       userRole={userRole} 
+      userId={userId}
     />
   );
 }

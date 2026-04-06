@@ -4,9 +4,13 @@ import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { 
-  Briefcase, Users, Plus, Search, Filter, MoreVertical,
-  Pause, Play, Archive, Eye, Edit, Trash2, Loader2,
-  LogOut, ChevronRight, Clock, AlertCircle, X, FileText, Copy
+  Users, Search, Filter, Plus, Edit, Trash2, 
+  Eye, MoreVertical, LayoutGrid, FileText, 
+  MapPin, Clock, DollarSign, Loader2,
+  Trash, Save, X, Check, Archive,
+  Pause, Play, AlertCircle, Shield,
+  Briefcase, LogOut, Copy, ChevronRight,
+  ShieldCheck, ShieldAlert
 } from 'lucide-react';
 
 interface Job {
@@ -19,7 +23,10 @@ interface Job {
   applications_count: number;
   application_deadline?: string;
   created_at: string;
+  created_by?: string;
   color: string;
+  visibility: 'ALL_HR' | 'SELECTED_HR';
+  hr_assignments?: string[];
 }
 
 interface JobTemplate {
@@ -54,6 +61,9 @@ interface JobFormData {
   color: string;
   currency: string;
   status: string;
+  visibility: 'ALL_HR' | 'SELECTED_HR';
+  hr_assignments: string[];
+  created_by?: string;
 }
 
 const statusConfig = {
@@ -83,6 +93,8 @@ const initialFormData: JobFormData = {
   color: '#3B82F6',
   currency: 'USD',
   status: 'draft',
+  visibility: 'ALL_HR',
+  hr_assignments: [],
 };
 
 interface AdminJobsClientProps {
@@ -90,9 +102,10 @@ interface AdminJobsClientProps {
   initialTemplates: JobTemplate[];
   serverError: string | null;
   userRole?: string;
+  userId?: string;
 }
 
-export default function AdminJobsClient({ initialJobs, initialTemplates, serverError, userRole }: AdminJobsClientProps) {
+export default function AdminJobsClient({ initialJobs, initialTemplates, serverError, userRole, userId }: AdminJobsClientProps) {
   const router = useRouter();
   const [jobs, setJobs] = useState<Job[]>(initialJobs);
   const [templates, setTemplates] = useState<JobTemplate[]>(initialTemplates);
@@ -109,14 +122,31 @@ export default function AdminJobsClient({ initialJobs, initialTemplates, serverE
   const [activeTab, setActiveTab] = useState<'jobs' | 'templates'>('jobs');
   const [error, setError] = useState<string | null>(serverError);
   const [editingJobId, setEditingJobId] = useState<string | null>(null);
+  const [showVisibilityModal, setShowVisibilityModal] = useState(false);
+  const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+  const [hrUsers, setHrUsers] = useState<any[]>([]);
   const [menuAnchor, setMenuAnchor] = useState<{ top: number, left: number } | null>(null);
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
+    if (userRole === 'SUPER_ADMIN' || userRole === 'ADMIN') {
+      fetchHrUsers();
+    }
   }, []);
 
-  // Refresh data when filter changes (client-side only after initial load)
+  const fetchHrUsers = async () => {
+    try {
+      const res = await fetch('/api/admin/users');
+      if (res.ok) {
+        const data = await res.json();
+        setHrUsers(data.filter((u: any) => ['ADMIN', 'HR'].includes(u.role)));
+      }
+    } catch (error) {
+      console.error('Error fetching staff users:', error);
+    }
+  };
+
   useEffect(() => {
     if (statusFilter !== 'all') {
       fetchJobs();
@@ -206,7 +236,10 @@ export default function AdminJobsClient({ initialJobs, initialTemplates, serverE
             category: job.category || '',
             color: job.color || '#3B82F6',
             currency: job.currency || 'USD',
-            status: job.status
+            status: job.status,
+            visibility: job.visibility || 'ALL_HR',
+            hr_assignments: job.hr_assignments || [],
+            created_by: job.created_by
         });
         setEditingJobId(jobId);
         setShowCreateModal(true);
@@ -266,6 +299,8 @@ export default function AdminJobsClient({ initialJobs, initialTemplates, serverE
       color: '#3B82F6',
       currency: template.currency || 'USD',
       status: 'draft',
+      visibility: 'ALL_HR',
+      hr_assignments: [],
     });
     setShowTemplateModal(false);
     setShowCreateModal(true);
@@ -284,6 +319,47 @@ export default function AdminJobsClient({ initialJobs, initialTemplates, serverE
       console.error('Error deleting template:', error);
     } finally {
       setIsTemplateAction(null);
+    }
+  };
+
+  const handleOpenVisibilityModal = (job: Job) => {
+    setSelectedJob(job);
+    setFormData({
+      ...initialFormData,
+      visibility: job.visibility || 'ALL_HR',
+      hr_assignments: job.hr_assignments || []
+    });
+    setShowVisibilityModal(true);
+    setActiveMenu(null);
+  };
+
+  const handleUpdateVisibilityOnly = async () => {
+    if (!selectedJob) return;
+    setCreating(true);
+    try {
+      const response = await fetch(`/api/jobs/${selectedJob.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          visibility: formData.visibility,
+          hr_assignments: formData.hr_assignments
+        }),
+      });
+
+      if (response.ok) {
+        setJobs(prev => prev.map(j => j.id === selectedJob.id ? { 
+          ...j, 
+          visibility: formData.visibility, 
+          hr_assignments: formData.hr_assignments 
+        } : j));
+        setShowVisibilityModal(false);
+        setFormData(initialFormData);
+        setSelectedJob(null);
+      }
+    } catch (error) {
+      console.error('Error updating visibility:', error);
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -354,7 +430,6 @@ export default function AdminJobsClient({ initialJobs, initialTemplates, serverE
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
       <header className="bg-white border-b border-gray-200 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex justify-between items-center">
@@ -363,7 +438,6 @@ export default function AdminJobsClient({ initialJobs, initialTemplates, serverE
                 <Briefcase className="w-6 h-6 text-indigo-600" />
                 <h1 className="text-xl font-semibold">Job Management</h1>
               </div>
-              {/* Main Tabs */}
               <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
                 <button
                   onClick={() => setActiveTab('jobs')}
@@ -395,7 +469,6 @@ export default function AdminJobsClient({ initialJobs, initialTemplates, serverE
               </div>
             </div>
             <div className="flex items-center gap-3">
-              {/* ADMIN MANAGEMENT BUTTON */}
               {userRole === 'SUPER_ADMIN' && (
                 <button
                   onClick={() => router.push('/admin/admin-management')}
@@ -444,10 +517,8 @@ export default function AdminJobsClient({ initialJobs, initialTemplates, serverE
         </div>
       </header>
 
-      {/* Jobs Tab Content */}
       {activeTab === 'jobs' && (
         <>
-          {/* Stats */}
           <div className="max-w-7xl mx-auto px-6 py-6">
             <div className="grid grid-cols-4 gap-4 mb-6">
               <div className="bg-white rounded-xl p-5 border border-gray-200">
@@ -501,7 +572,6 @@ export default function AdminJobsClient({ initialJobs, initialTemplates, serverE
           </div>
         </div>
 
-        {/* Tabs and Search */}
         <div className="bg-white rounded-xl border border-gray-200 mb-6">
           <div className="border-b border-gray-200 px-6">
             <div className="flex items-center gap-1">
@@ -541,8 +611,6 @@ export default function AdminJobsClient({ initialJobs, initialTemplates, serverE
           </div>
         </div>
 
-        {/* Jobs List */}
-        {/* Jobs List */}
         <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-50 border-b border-gray-200">
@@ -667,6 +735,18 @@ export default function AdminJobsClient({ initialJobs, initialTemplates, serverE
                               <Edit className="w-4 h-4" />
                               Edit Job
                             </button>
+                            {(userRole === 'SUPER_ADMIN' || job.created_by === userId) && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleOpenVisibilityModal(job);
+                                }}
+                                className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 text-indigo-600"
+                              >
+                                <Shield className="w-4 h-4" />
+                                Change Visibility
+                              </button>
+                            )}
                             <hr className="my-1" />
                             {job.status === 'published' && (
                               <button
@@ -773,7 +853,6 @@ export default function AdminJobsClient({ initialJobs, initialTemplates, serverE
         </>
       )}
 
-      {/* Templates Tab Content */}
       {activeTab === 'templates' && (
         <div className="max-w-7xl mx-auto px-6 py-6">
           <div className="bg-white rounded-xl border border-gray-200">
@@ -867,7 +946,6 @@ export default function AdminJobsClient({ initialJobs, initialTemplates, serverE
         </div>
       )}
 
-      {/* Click outside to close menu */}
       {activeMenu && (
         <div 
           className="fixed inset-0 z-40" 
@@ -875,7 +953,6 @@ export default function AdminJobsClient({ initialJobs, initialTemplates, serverE
         />
       )}
 
-      {/* Template Picker Modal */}
       {showTemplateModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-6 z-50">
           <div className="bg-white rounded-2xl max-w-lg w-full max-h-[80vh] overflow-y-auto">
@@ -926,7 +1003,6 @@ export default function AdminJobsClient({ initialJobs, initialTemplates, serverE
         </div>
       )}
 
-      {/* Create Job Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-6 z-50">
           <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
@@ -946,7 +1022,6 @@ export default function AdminJobsClient({ initialJobs, initialTemplates, serverE
             </div>
 
             <form onSubmit={handleCreateJob} className="p-6 space-y-5">
-              {/* Title */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Job Title *</label>
                 <input
@@ -960,7 +1035,6 @@ export default function AdminJobsClient({ initialJobs, initialTemplates, serverE
                 />
               </div>
 
-              {/* Type, Location, Category Row */}
               <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Type *</label>
@@ -998,7 +1072,6 @@ export default function AdminJobsClient({ initialJobs, initialTemplates, serverE
                 </div>
               </div>
 
-              {/* Salary Range */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Salary Min</label>
@@ -1022,7 +1095,6 @@ export default function AdminJobsClient({ initialJobs, initialTemplates, serverE
                 </div>
               </div>
 
-              {/* Color & Currency Picker Row */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Job Color</label>
@@ -1052,7 +1124,6 @@ export default function AdminJobsClient({ initialJobs, initialTemplates, serverE
                 </div>
               </div>
 
-              {/* Description */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Description *</label>
                 <textarea
@@ -1065,7 +1136,6 @@ export default function AdminJobsClient({ initialJobs, initialTemplates, serverE
                 />
               </div>
 
-              {/* Requirements */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Requirements (one per line)</label>
                 <textarea
@@ -1077,7 +1147,6 @@ export default function AdminJobsClient({ initialJobs, initialTemplates, serverE
                 />
               </div>
 
-              {/* Responsibilities */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Responsibilities (one per line)</label>
                 <textarea
@@ -1089,7 +1158,6 @@ export default function AdminJobsClient({ initialJobs, initialTemplates, serverE
                 />
               </div>
 
-              {/* Benefits */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Benefits (one per line)</label>
                 <textarea
@@ -1101,7 +1169,6 @@ export default function AdminJobsClient({ initialJobs, initialTemplates, serverE
                 />
               </div>
 
-              {/* Deadline & Status */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Application Deadline</label>
@@ -1125,7 +1192,81 @@ export default function AdminJobsClient({ initialJobs, initialTemplates, serverE
                 </div>
               </div>
 
-              {/* Actions */}
+              {(userRole === 'SUPER_ADMIN' || !editingJobId || formData.created_by === userId) && (
+                <div className="space-y-4 pt-2">
+                  <div className="flex items-center justify-between border-t border-gray-100 pt-4">
+                    <h3 className="text-sm font-semibold text-gray-900">Job Visibility</h3>
+                    <div className="flex items-center gap-4">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="visibility"
+                          value="ALL_HR"
+                          checked={formData.visibility === 'ALL_HR'}
+                          onChange={() => setFormData(prev => ({ ...prev, visibility: 'ALL_HR', hr_assignments: [] }))}
+                          className="w-4 h-4 text-indigo-600 focus:ring-indigo-500"
+                        />
+                        <span className="text-sm text-gray-700">All Staff</span>
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="visibility"
+                          value="SELECTED_HR"
+                          checked={formData.visibility === 'SELECTED_HR'}
+                          onChange={() => setFormData(prev => ({ ...prev, visibility: 'SELECTED_HR' }))}
+                          className="w-4 h-4 text-indigo-600 focus:ring-indigo-500"
+                        />
+                        <span className="text-sm text-gray-700">Selected Staff</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  {formData.visibility === 'SELECTED_HR' && (
+                    <div className="bg-gray-50 rounded-xl p-4 space-y-3">
+                      <p className="text-xs font-medium text-gray-500 uppercase">Select Assigned Staff</p>
+                      {hrUsers.length === 0 ? (
+                        <p className="text-sm text-gray-400 italic">No assignable staff found.</p>
+                      ) : (
+                        <div className="grid grid-cols-2 gap-2">
+                          {hrUsers.map(user => (
+                            <label key={user.id} className="flex items-center gap-3 p-2 bg-white rounded-lg border border-gray-200 hover:border-indigo-300 transition-colors cursor-pointer group">
+                              <input
+                                type="checkbox"
+                                checked={formData.hr_assignments.includes(user.id)}
+                                onChange={(e) => {
+                                  const checked = e.target.checked;
+                                  setFormData(prev => ({
+                                    ...prev,
+                                    hr_assignments: checked 
+                                      ? [...prev.hr_assignments, user.id]
+                                      : prev.hr_assignments.filter(id => id !== user.id)
+                                  }));
+                                }}
+                                className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
+                              />
+                              <div className="flex flex-col">
+                                <div className="flex items-baseline gap-2">
+                                  <span className="text-sm font-medium text-gray-900 group-hover:text-indigo-600 transition-colors">{user.name}</span>
+                                  <span className="text-[10px] font-bold text-gray-400 uppercase">{user.role}</span>
+                                </div>
+                                <span className="text-xs text-gray-500">{user.email}</span>
+                              </div>
+                            </label>
+                          ))}
+                        </div>
+                      )}
+                      {formData.hr_assignments.length === 0 && (
+                        <p className="text-xs text-amber-600 mt-2 flex items-center gap-1">
+                          <AlertCircle className="w-3 h-3" />
+                          At least one staff member must be selected for this visibility.
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="flex gap-3 pt-4 border-t border-gray-200">
                 <button
                   type="button"
@@ -1177,6 +1318,106 @@ export default function AdminJobsClient({ initialJobs, initialTemplates, serverE
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {showVisibilityModal && selectedJob && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowVisibilityModal(false)} />
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg relative z-10 overflow-hidden flex flex-col">
+            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-bold text-gray-900">Manage Visibility</h2>
+                <p className="text-xs text-gray-500 font-medium">Job: {selectedJob.title}</p>
+              </div>
+              <button 
+                onClick={() => setShowVisibilityModal(false)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5 text-gray-400" />
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-6">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-semibold text-gray-700">Access Type</span>
+                <div className="flex items-center gap-4">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="quick_visibility"
+                      value="ALL_HR"
+                      checked={formData.visibility === 'ALL_HR'}
+                      onChange={() => setFormData(prev => ({ ...prev, visibility: 'ALL_HR', hr_assignments: [] }))}
+                      className="w-4 h-4 text-indigo-600 focus:ring-indigo-500"
+                    />
+                    <span className="text-sm text-gray-700 font-medium">All Staff</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="quick_visibility"
+                      value="SELECTED_HR"
+                      checked={formData.visibility === 'SELECTED_HR'}
+                      onChange={() => setFormData(prev => ({ ...prev, visibility: 'SELECTED_HR' }))}
+                      className="w-4 h-4 text-indigo-600 focus:ring-indigo-500"
+                    />
+                    <span className="text-sm text-gray-700 font-medium">Selected Staff</span>
+                  </label>
+                </div>
+              </div>
+
+              {formData.visibility === 'SELECTED_HR' && (
+                <div className="bg-gray-50 rounded-xl p-4 space-y-3">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Assign Staff Members</p>
+                  <div className="max-h-[200px] overflow-y-auto pr-2 space-y-2 custom-scrollbar">
+                    {hrUsers.map(user => (
+                      <label key={user.id} className="flex items-center gap-3 p-2 bg-white rounded-lg border border-gray-200 hover:border-indigo-300 transition-colors cursor-pointer group">
+                        <input
+                          type="checkbox"
+                          checked={formData.hr_assignments.includes(user.id)}
+                          onChange={(e) => {
+                            const checked = e.target.checked;
+                            setFormData(prev => ({
+                              ...prev,
+                              hr_assignments: checked 
+                                ? [...prev.hr_assignments, user.id]
+                                : prev.hr_assignments.filter(id => id !== user.id)
+                            }));
+                          }}
+                          className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
+                        />
+                        <div className="flex flex-col">
+                          <div className="flex items-baseline gap-2">
+                            <span className="text-sm font-semibold text-gray-900 group-hover:text-indigo-600 transition-colors">{user.name}</span>
+                            <span className="text-[9px] font-bold text-gray-400 uppercase">{user.role}</span>
+                          </div>
+                          <span className="text-[10px] text-gray-500">{user.email}</span>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex gap-3">
+              <button
+                onClick={() => setShowVisibilityModal(false)}
+                className="px-4 py-2 border border-gray-200 text-gray-600 rounded-lg hover:bg-white transition-colors text-sm font-semibold"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleUpdateVisibilityOnly}
+                disabled={creating || (formData.visibility === 'SELECTED_HR' && formData.hr_assignments.length === 0)}
+                className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-semibold shadow-md shadow-indigo-100 flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Shield className="w-4 h-4" />}
+                Save Visibility Settings
+              </button>
+            </div>
           </div>
         </div>
       )}

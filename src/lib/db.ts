@@ -9,7 +9,12 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-export async function getJobs(options?: { status?: string; includeArchived?: boolean }) {
+export async function getJobs(options?: { 
+  status?: string; 
+  includeArchived?: boolean;
+  userId?: string;
+  userRole?: string;
+}) {
   // Automatically pause expired jobs before fetching
   try {
     await autoPauseExpiredJobs();
@@ -17,7 +22,7 @@ export async function getJobs(options?: { status?: string; includeArchived?: boo
     console.error('Failed to auto-pause expired jobs:', err);
   }
 
-  let query = supabase.from('jobs').select('*');
+  let query = supabase.from('jobs').select('*, job_hr_assignments(user_id)');
 
   if (options?.status && options.status !== 'all') {
     query = query.eq('status', options.status);
@@ -27,11 +32,32 @@ export async function getJobs(options?: { status?: string; includeArchived?: boo
     query = query.neq('status', 'archived');
   }
 
+  // Role-based filtering for Admin/HR
+  if (['ADMIN', 'HR'].includes(options?.userRole || '') && options?.userId) {
+    // Both ADMIN and HR can see jobs where visibility is ALL_HR OR they are specifically assigned
+    const { data: assignments } = await supabase
+      .from('job_hr_assignments')
+      .select('job_id')
+      .eq('user_id', options.userId);
+    
+    const assignedIds = assignments?.map(a => a.job_id) || [];
+    
+    if (assignedIds.length > 0) {
+      query = query.or(`visibility.eq.ALL_HR,id.in.(${assignedIds.join(',')})`);
+    } else {
+      query = query.eq('visibility', 'ALL_HR');
+    }
+  }
+
   query = query.order('created_at', { ascending: false });
 
   const { data, error } = await query;
   if (error) throw error;
-  return data || [];
+  
+  return (data || []).map(job => ({
+    ...job,
+    hr_assignments: (job.job_hr_assignments as any[])?.map(a => a.user_id) || []
+  }));
 }
 
 export async function autoPauseExpiredJobs() {
@@ -97,27 +123,79 @@ export async function getJobBySlug(slug: string) {
   return data;
 }
 
-export async function createJob(jobData: Record<string, unknown>) {
+export async function createJob(jobData: Record<string, any>) {
+  const { hr_assignments, creatorId, creatorRole, ...rest } = jobData;
+  
+  // Add creatorId as created_by if available
+  if (creatorId) {
+    (rest as any).created_by = creatorId;
+  }
+
   const { data, error } = await supabase
     .from('jobs')
-    .insert(jobData)
+    .insert(rest)
     .select()
     .single();
 
   if (error) throw error;
-  return data;
+
+  let finalAssignments = Array.isArray(hr_assignments) ? [...hr_assignments] : [];
+
+  // Auto-assign creator if they are an ADMIN and it's SELECTED_HR
+  if (creatorId && creatorRole === 'ADMIN' && jobData.visibility === 'SELECTED_HR') {
+    if (!finalAssignments.includes(creatorId)) {
+      finalAssignments.push(creatorId);
+    }
+  }
+
+  if (finalAssignments.length > 0) {
+    const assignments = finalAssignments.map((userId: string) => ({
+      job_id: data.id,
+      user_id: userId
+    }));
+
+    const { error: assignError } = await supabase
+      .from('job_hr_assignments')
+      .insert(assignments);
+
+    if (assignError) throw assignError;
+  }
+
+  return { ...data, hr_assignments: hr_assignments || [] };
 }
 
-export async function updateJob(id: string, jobData: Record<string, unknown>) {
+export async function updateJob(id: string, jobData: Record<string, any>) {
+  const { hr_assignments, ...rest } = jobData;
+
   const { data, error } = await supabase
     .from('jobs')
-    .update(jobData)
+    .update(rest)
     .eq('id', id)
     .select()
     .single();
 
   if (error) throw error;
-  return data;
+
+  // Handle HR assignments update
+  if (hr_assignments !== undefined && Array.isArray(hr_assignments)) {
+    // Delete existing
+    await supabase.from('job_hr_assignments').delete().eq('job_id', id);
+    
+    // Insert new
+    if (hr_assignments.length > 0) {
+      const assignments = hr_assignments.map((userId: string) => ({
+        job_id: id,
+        user_id: userId
+      }));
+      const { error: assignError } = await supabase
+        .from('job_hr_assignments')
+        .insert(assignments);
+      
+      if (assignError) throw assignError;
+    }
+  }
+
+  return { ...data, hr_assignments: hr_assignments || [] };
 }
 
 export async function deleteJob(id: string) {
@@ -129,10 +207,16 @@ export async function deleteJob(id: string) {
   if (error) throw error;
 }
 
-export async function getApplications(options?: { jobId?: string; status?: string; stage?: string }) {
+export async function getApplications(options?: { 
+  jobId?: string; 
+  status?: string; 
+  stage?: string;
+  userId?: string;
+  userRole?: string;
+}) {
   let query = supabase.from('applications').select(`
     *,
-    jobs(title, slug)
+    jobs(id, title, slug, visibility)
   `);
 
   if (options?.jobId && options.jobId !== 'all') {
@@ -150,13 +234,29 @@ export async function getApplications(options?: { jobId?: string; status?: strin
   query = query.eq('is_archived', false);
   query = query.order('applied_at', { ascending: false });
 
-  const { data, error } = await query;
+  let { data, error } = await query;
   if (error) throw error;
 
-  return (data || []).map((app: Record<string, unknown>) => ({
+  // Role-based filtering for Admin/HR
+  if (['ADMIN', 'HR'].includes(options?.userRole || '') && options?.userId) {
+    // We need to filter applications based on whether User is assigned to the job
+    const { data: assignments } = await supabase
+      .from('job_hr_assignments')
+      .select('job_id')
+      .eq('user_id', options.userId);
+    
+    const assignedIds = assignments?.map(a => a.job_id) || [];
+    
+    data = (data || []).filter((app: any) => {
+      const job = app.jobs as any;
+      return job.visibility === 'ALL_HR' || assignedIds.includes(job.id);
+    });
+  }
+
+  return (data || []).map((app: Record<string, any>) => ({
     ...app,
-    job_title: (app.jobs as Record<string, unknown>)?.title,
-    job_slug: (app.jobs as Record<string, unknown>)?.slug,
+    job_title: (app.jobs as Record<string, any>)?.title,
+    job_slug: (app.jobs as Record<string, any>)?.slug,
     jobs: undefined,
   }));
 }

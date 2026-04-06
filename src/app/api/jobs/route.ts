@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getJobs, createJob, autoPauseExpiredJobs } from '@/lib/db';
 import { generateSlug } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
+import { verifyJWT } from '@/lib/jwt';
 
 
 export const revalidate = 60;
@@ -15,9 +16,19 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status') || undefined;
     const includeArchived = searchParams.get('includeArchived') === 'true';
 
-    console.log('Fetching jobs with:', { status, includeArchived });
+    const token = request.cookies.get('auth_token')?.value;
+    const payload = token ? await verifyJWT(token) : null;
+    const userId = payload?.userId as string | undefined;
+    const userRole = payload?.role as string | undefined;
 
-    const jobs = await getJobs({ status, includeArchived });
+    console.log('Fetching jobs for:', { userId, userRole, status, includeArchived });
+
+    const jobs = await getJobs({ 
+      status, 
+      includeArchived,
+      userId,
+      userRole
+    });
 
     console.log('Jobs fetched:', jobs.length);
 
@@ -31,6 +42,14 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const token = request.cookies.get('auth_token')?.value;
+    if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const payload = await verifyJWT(token);
+    if (!payload || !['SUPER_ADMIN', 'ADMIN'].includes(payload.role as string)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     const body = await request.json();
 
     // Generate slug from title
@@ -56,6 +75,10 @@ export async function POST(request: NextRequest) {
       template_id: body.template_id || null,
       category: body.category || null,
       currency: body.currency || 'USD',
+      visibility: body.visibility || 'ALL_HR',
+      hr_assignments: body.hr_assignments || [],
+      creatorId: payload.userId,
+      creatorRole: payload.role,
     };
 
     const job = await createJob(jobData);

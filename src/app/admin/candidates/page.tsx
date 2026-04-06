@@ -15,17 +15,27 @@ export default async function AdminCandidatesPage() {
   try {
     const cookieStore = cookies();
     const token = cookieStore.get('auth_token')?.value;
+    let userId = '';
     
     if (token) {
        const payload = await verifyJWT(token);
        if (payload) {
          userRole = payload.role as string;
+         userId = payload.userId as string;
        }
     }
 
     [applications, jobs] = await Promise.all([
-      getApplications({ jobId: 'all' }),
-      getJobs({ includeArchived: true })
+      getApplications({ 
+        jobId: 'all',
+        userId,
+        userRole
+      }),
+      getJobs({ 
+        includeArchived: true,
+        userId,
+        userRole
+      })
     ]);
   } catch (e) {
     console.error('Error fetching candidates data:', e);

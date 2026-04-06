@@ -24,7 +24,10 @@ export interface Job {
   template_id?: string;
   category?: string;
   applications_count: number;
+  visibility: 'ALL_HR' | 'SELECTED_HR';
+  hr_assignments?: string[]; // Array of user IDs
   created_at: string;
+  created_by?: string;
   updated_at: string;
 }
 
@@ -105,7 +108,7 @@ export interface User {
   id: string;
   email: string;
   name: string;
-  role: 'admin' | 'recruiter' | 'hiring_manager';
+  role: 'SUPER_ADMIN' | 'ADMIN' | 'HR';
   avatar_url?: string;
   created_at: string;
   updated_at: string;
