@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
           id: 'admin-1',
           email: ADMIN_CREDENTIALS.email,
           name: 'Admin User',
-          role: 'admin',
+          role: 'ADMIN',
         },
         token: 'mock-jwt-token', 
       });

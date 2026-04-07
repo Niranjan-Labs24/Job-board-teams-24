@@ -25,7 +25,7 @@ interface Job {
   created_at: string;
   created_by?: string;
   color: string;
-  visibility: 'ALL_HR' | 'SELECTED_HR';
+  visibility: 'ALL_HR' | 'SELECTED_HR' | 'PRIVATE';
   hr_assignments?: string[];
 }
 
@@ -61,7 +61,7 @@ interface JobFormData {
   color: string;
   currency: string;
   status: string;
-  visibility: 'ALL_HR' | 'SELECTED_HR';
+  visibility: 'ALL_HR' | 'SELECTED_HR' | 'PRIVATE';
   hr_assignments: string[];
   created_by?: string;
 }
@@ -130,17 +130,20 @@ export default function AdminJobsClient({ initialJobs, initialTemplates, serverE
 
   useEffect(() => {
     setIsMounted(true);
-    if (userRole === 'SUPER_ADMIN' || userRole === 'ADMIN') {
+    const normalizedRole = userRole?.toUpperCase();
+    if (normalizedRole === 'SUPER_ADMIN' || normalizedRole === 'ADMIN') {
       fetchHrUsers();
     }
-  }, []);
+  }, [userRole]);
 
   const fetchHrUsers = async () => {
     try {
       const res = await fetch('/api/admin/users');
       if (res.ok) {
         const data = await res.json();
-        setHrUsers(data.filter((u: any) => ['ADMIN', 'HR'].includes(u.role)));
+        setHrUsers(data.filter((u: any) => 
+          ['ADMIN', 'HR'].includes(u.role?.toUpperCase())
+        ));
       }
     } catch (error) {
       console.error('Error fetching staff users:', error);
@@ -181,6 +184,16 @@ export default function AdminJobsClient({ initialJobs, initialTemplates, serverE
     } catch (error) {
       console.error('Error fetching templates:', error);
     }
+  };
+
+  const handleOpenCreateModal = () => {
+    const isSuperAdmin = userRole?.toUpperCase() === 'SUPER_ADMIN';
+    setFormData({
+      ...initialFormData,
+      visibility: isSuperAdmin ? 'PRIVATE' : 'ALL_HR'
+    });
+    setEditingJobId(null);
+    setShowCreateModal(true);
   };
 
   const handleCreateJob = async (e: React.FormEvent) => {
@@ -299,7 +312,7 @@ export default function AdminJobsClient({ initialJobs, initialTemplates, serverE
       color: '#3B82F6',
       currency: template.currency || 'USD',
       status: 'draft',
-      visibility: 'ALL_HR',
+      visibility: userRole?.toUpperCase() === 'SUPER_ADMIN' ? 'PRIVATE' : 'ALL_HR',
       hr_assignments: [],
     });
     setShowTemplateModal(false);
@@ -489,7 +502,7 @@ export default function AdminJobsClient({ initialJobs, initialTemplates, serverE
 
               {activeTab === 'jobs' && (
                 <button
-                  onClick={() => setShowCreateModal(true)}
+                  onClick={handleOpenCreateModal}
                   className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
                   data-testid="create-job-btn"
                 >
@@ -863,10 +876,7 @@ export default function AdminJobsClient({ initialJobs, initialTemplates, serverE
                   <p className="text-sm text-gray-500 mt-1">Save time by creating reusable job templates</p>
                 </div>
                 <button
-                  onClick={() => {
-                    setFormData(initialFormData);
-                    setShowCreateModal(true);
-                  }}
+                  onClick={handleOpenCreateModal}
                   className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
                 >
                   <Plus className="w-4 h-4" />
@@ -881,10 +891,7 @@ export default function AdminJobsClient({ initialJobs, initialTemplates, serverE
                 <h3 className="text-lg font-medium text-gray-900 mb-2">No templates yet</h3>
                 <p className="text-gray-500 mb-6">Create a job template to speed up your hiring process</p>
                 <button
-                  onClick={() => {
-                    setFormData(initialFormData);
-                    setShowCreateModal(true);
-                  }}
+                  onClick={handleOpenCreateModal}
                   className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
                 >
                   <Plus className="w-4 h-4" />
@@ -973,7 +980,7 @@ export default function AdminJobsClient({ initialJobs, initialTemplates, serverE
                 <button
                   onClick={() => {
                     setShowTemplateModal(false);
-                    setShowCreateModal(true);
+                    handleOpenCreateModal();
                   }}
                   className="text-indigo-600 hover:text-indigo-700"
                 >
@@ -1219,6 +1226,17 @@ export default function AdminJobsClient({ initialJobs, initialTemplates, serverE
                         />
                         <span className="text-sm text-gray-700">Selected Staff</span>
                       </label>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="visibility"
+                          value="PRIVATE"
+                          checked={formData.visibility === 'PRIVATE'}
+                          onChange={() => setFormData(prev => ({ ...prev, visibility: 'PRIVATE', hr_assignments: [] }))}
+                          className="w-4 h-4 text-indigo-600 focus:ring-indigo-500"
+                        />
+                        <span className="text-sm text-gray-700">Only Super Admin</span>
+                      </label>
                     </div>
                   </div>
 
@@ -1364,6 +1382,17 @@ export default function AdminJobsClient({ initialJobs, initialTemplates, serverE
                       className="w-4 h-4 text-indigo-600 focus:ring-indigo-500"
                     />
                     <span className="text-sm text-gray-700 font-medium">Selected Staff</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="quick_visibility"
+                      value="PRIVATE"
+                      checked={formData.visibility === 'PRIVATE'}
+                      onChange={() => setFormData(prev => ({ ...prev, visibility: 'PRIVATE', hr_assignments: [] }))}
+                      className="w-4 h-4 text-indigo-600 focus:ring-indigo-500"
+                    />
+                    <span className="text-sm text-gray-700 font-medium">Only Super Admin</span>
                   </label>
                 </div>
               </div>

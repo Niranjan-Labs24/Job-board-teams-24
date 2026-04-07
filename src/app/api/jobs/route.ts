@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
       template_id: body.template_id || null,
       category: body.category || null,
       currency: body.currency || 'USD',
-      visibility: body.visibility || 'ALL_HR',
+      visibility: body.visibility || (payload.role === 'SUPER_ADMIN' ? 'PRIVATE' : 'ALL_HR'),
       hr_assignments: body.hr_assignments || [],
       creatorId: payload.userId,
       creatorRole: payload.role,
