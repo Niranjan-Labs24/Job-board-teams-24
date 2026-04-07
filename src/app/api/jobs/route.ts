@@ -9,7 +9,7 @@ export const revalidate = 60;
 
 export async function GET(request: NextRequest) {
   try {
-    // Automatically pause jobs that have passed their deadline
+   
     await autoPauseExpiredJobs();
 
     const { searchParams } = new URL(request.url);
@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
 
-    // Generate slug from title
+  
     const tempId = Date.now().toString();
     const slug = generateSlug(body.title, tempId);
 
@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
 
     const job = await createJob(jobData);
 
-    // Revalidate paths to reflect the new job
+  
     revalidatePath('/');
     revalidatePath('/careers');
 
