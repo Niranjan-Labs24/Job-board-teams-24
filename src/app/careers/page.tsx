@@ -185,7 +185,7 @@ export default function CareersPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-2 mb-0.5">
-                        <h2 className="text-lg md:text-xl font-bold text-gray-900 tracking-tight transition-colors group-hover:text-indigo-600 truncate">
+                        <h2 className="text-lg md:text-xl font-bold text-gray-900 tracking-tight transition-colors group-hover:text-indigo-600">
                           {job.title}
                         </h2>
                         <div className="flex gap-1">
@@ -203,9 +203,9 @@ export default function CareersPage() {
                       </div>
                       
                        <div className="flex flex-wrap items-center gap-1.5 text-gray-400 font-medium text-[10px] md:text-xs">
-                        <span className="truncate">{job.type}</span>
+                        <span>{job.type}</span>
                         <span>•</span>
-                        <span className="truncate">{job.location}</span>
+                        <span>{job.location}</span>
                         <span>•</span>
                         <span className="flex items-center gap-1">
                           {job.currency === 'INR' ? (
@@ -231,7 +231,7 @@ export default function CareersPage() {
                     </div>
                   </div>
 
-                  <div className="flex items-center relative z-10">
+                  <div className="flex items-center relative z-10 flex-shrink-0">
                     <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-black flex items-center justify-center text-white hover:bg-gray-800 transition-all duration-300 transform group-hover:rotate-45 shadow-lg shadow-black/10">
                       <ArrowUpRight className="w-5 h-5 md:w-6 md:h-6" />
                     </div>
