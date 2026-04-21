@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getApplications, createApplication } from '@/lib/db';
 import { verifyJWT } from '@/lib/jwt';
 
-// GET all applications
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -30,7 +29,6 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST create new application
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();

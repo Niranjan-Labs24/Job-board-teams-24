@@ -1,12 +1,9 @@
--- Teams 24 Careers Database Schema
--- Run this in Supabase SQL Editor
 
--- Users table
 CREATE TABLE IF NOT EXISTS users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   email VARCHAR(255) NOT NULL UNIQUE,
   name VARCHAR(255),
-  role VARCHAR(50) DEFAULT 'recruiter',
+  role VARCHAR(50) DEFAULT 'RECRUITER',
   avatar_url TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -124,7 +121,7 @@ CREATE INDEX IF NOT EXISTS idx_notes_application_id ON candidate_notes(applicati
 
 -- Insert default admin user
 INSERT INTO users (email, name, role) 
-VALUES ('admin@jobboard.com', 'Admin User', 'admin')
+VALUES ('admin@jobboard.com', 'Admin User', 'ADMIN')
 ON CONFLICT (email) DO NOTHING;
 
 -- Sample seed data (optional)

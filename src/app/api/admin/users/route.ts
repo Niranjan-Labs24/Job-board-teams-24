@@ -14,10 +14,9 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
         }
 
-        // Fetch users
         let query = supabase.from('users').select('*').order('created_at', { ascending: false });
         
-        // If the requester is an ADMIN, they shouldn't see SUPER_ADMINs
+
         if (userRole === 'ADMIN') {
             query = query.neq('role', 'SUPER_ADMIN');
         }
