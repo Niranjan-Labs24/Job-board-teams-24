@@ -80,16 +80,28 @@ export default function JobPageClient({ job }: JobPageClientProps) {
 
       {/* Header */}
       <div className="bg-white border-b border-gray-100 shadow-sm sticky top-0 z-20 backdrop-blur-md bg-white/80">
-        <div className="max-w-5xl mx-auto px-6 py-8">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 text-gray-400 hover:text-black mb-8 transition-all font-bold uppercase tracking-widest text-xs group"
-          >
-            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-            Back to Positions
-          </Link>
+        <div className="max-w-5xl mx-auto px-6 py-6 md:py-8">
+          <div className="flex items-center justify-between mb-6">
+            <Link 
+              href="https://teams24.co" 
+              className="hover:opacity-80 transition-opacity"
+            >
+              <img 
+                src="/NavLogo.webp" 
+                alt="Teams24 Logo" 
+                className="h-6 md:h-8 w-auto object-contain"
+              />
+            </Link>
+            <Link
+              href="/"
+              className="inline-flex items-center gap-2 text-gray-400 hover:text-black transition-all font-bold uppercase tracking-widest text-xs group"
+            >
+              <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+              Back to Positions
+            </Link>
+          </div>
 
-          <div className="flex flex-col md:flex-row items-center justify-between gap-8 mb-12">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-8 mb-4">
             <div className="flex items-center gap-6">
               <div
                 className="w-16 h-16 md:w-20 md:h-20 rounded-full flex-shrink-0 flex items-center justify-center text-white text-xl md:text-2xl font-black shadow-lg"

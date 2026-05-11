@@ -85,6 +85,16 @@ export default function CareersPage() {
         </div>
         
         <div className="max-w-7xl mx-auto px-6 md:px-8 relative z-10 w-full">
+          <Link 
+            href="https://teams24.co" 
+            className="flex items-center gap-3 mb-6 md:mb-8 hover:opacity-80 transition-opacity"
+          >
+            <img 
+              src="/NavLogo.webp" 
+              alt="Teams24 Logo" 
+              className="h-8 md:h-10 w-auto object-contain brightness-0 invert"
+            />
+          </Link>
           <div className="max-w-3xl">
             <h1 className="text-6xl md:text-7xl font-black mb-8 tracking-tight leading-tight">
               Work with global clients. <span className="text-gray-500">Grow faster than anywhere else.</span>
