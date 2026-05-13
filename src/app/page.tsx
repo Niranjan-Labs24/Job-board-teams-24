@@ -88,13 +88,16 @@ export default function Home() {
         </div>
         
         <div className="max-w-7xl mx-auto px-6 md:px-8 relative z-10 w-full">
-          <div className="flex items-center gap-3 mb-6 md:mb-8">
+          <Link 
+            href="https://teams24.co" 
+            className="flex items-center gap-3 mb-6 md:mb-8 hover:opacity-80 transition-opacity"
+          >
             <img 
               src="/NavLogo.webp" 
               alt="Teams24 Logo" 
               className="h-8 md:h-10 w-auto object-contain"
             />
-          </div>
+          </Link>
           <div className="max-w-3xl">
             <h1 className="text-3xl md:text-5xl font-semibold mb-4 tracking-tight leading-tight">
               Work with global clients. Grow faster than anywhere else.
