@@ -2,6 +2,8 @@ import { Metadata } from 'next';
 import { getJobBySlug } from '@/lib/db';
 import JobPageClient from './JobPageClient';
 
+export const revalidate = 0;
+
 interface Job {
   id: string;
   slug: string;

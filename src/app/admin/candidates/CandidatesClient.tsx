@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { 
   Users, Search, Filter, Trash2, Loader2, Mail, 
   ChevronRight, Clock, X, FileText, ExternalLink,
-  Star, Briefcase, LayoutGrid, ArrowLeft
+  Star, Briefcase, LayoutGrid, ArrowLeft, List, Settings2
 } from 'lucide-react';
 import { createPortal } from 'react-dom';
 
@@ -27,7 +27,29 @@ interface Application {
   job_id?: string;
   job_title?: string;
   job_slug?: string;
+  skill_set?: string;
+  total_experience?: string;
+  current_ctc?: string;
+  expected_ctc?: string;
+  notice_period?: string;
+  current_location?: string;
+  relevant_experience?: string;
+  current_organization?: string;
+  current_designation?: string;
 }
+
+const extractNumber = (str?: string) => {
+  if (!str) return null;
+  const numMatch = str.match(/[\d,.]+/);
+  if (!numMatch) return null;
+  let num = parseFloat(numMatch[0].replace(/,/g, ''));
+  const lowerStr = str.toLowerCase();
+  if (lowerStr.includes('k')) num *= 1000;
+  if (lowerStr.includes('lpa') || lowerStr.includes('lakh')) num *= 100000;
+  if (lowerStr.includes('m') || lowerStr.includes('million')) num *= 1000000;
+  if (lowerStr.includes('cr') || lowerStr.includes('crore')) num *= 10000000;
+  return num;
+};
 
 interface Job {
   id: string;
@@ -71,13 +93,40 @@ export default function CandidatesClient({ initialApplications, jobs, serverErro
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const [isChangingStage, setIsChangingStage] = useState(false);
 
+  const [viewFormat, setViewFormat] = useState<'tabular' | 'grid'>('tabular');
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [advancedFilters, setAdvancedFilters] = useState({
+    skillSet: '',
+    totalExperience: '',
+    currentLocation: '',
+    expectedCtc: '',
+    noticePeriod: '',
+    relevantExperience: '',
+    currentCtc: ''
+  });
+
   // Filtering logic
   const filteredApps = applications.filter(app => {
     const matchesSearch = app.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
                           app.email.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStage = stageFilter === 'all' || app.stage === stageFilter;
     const matchesJob = jobFilter === 'all' || app.job_id === jobFilter;
-    return matchesSearch && matchesStage && matchesJob;
+    
+    const matchesSkill = !advancedFilters.skillSet || (app.skill_set?.toLowerCase() || '').includes(advancedFilters.skillSet.toLowerCase());
+    const matchesExp = !advancedFilters.totalExperience || (app.total_experience?.toLowerCase() || '').includes(advancedFilters.totalExperience.toLowerCase());
+    const matchesLoc = !advancedFilters.currentLocation || (app.current_location?.toLowerCase() || '').includes(advancedFilters.currentLocation.toLowerCase());
+    const matchesNotice = !advancedFilters.noticePeriod || (app.notice_period?.toLowerCase() || '').includes(advancedFilters.noticePeriod.toLowerCase());
+    const matchesRelExp = !advancedFilters.relevantExperience || (app.relevant_experience?.toLowerCase() || '').includes(advancedFilters.relevantExperience.toLowerCase());
+    
+    const filterExpCtc = extractNumber(advancedFilters.expectedCtc);
+    const appExpCtc = extractNumber(app.expected_ctc);
+    const matchesExpCtc = filterExpCtc === null || (appExpCtc !== null && appExpCtc <= filterExpCtc);
+
+    const filterCurCtc = extractNumber(advancedFilters.currentCtc);
+    const appCurCtc = extractNumber(app.current_ctc);
+    const matchesCurCtc = filterCurCtc === null || (appCurCtc !== null && appCurCtc <= filterCurCtc);
+
+    return matchesSearch && matchesStage && matchesJob && matchesSkill && matchesExp && matchesLoc && matchesExpCtc && matchesNotice && matchesRelExp && matchesCurCtc;
   });
 
   const openDrawer = (app: Application) => {
@@ -234,84 +283,263 @@ export default function CandidatesClient({ initialApplications, jobs, serverErro
                 {jobs.map(j => <option key={j.id} value={j.id}>{j.title}</option>)}
               </select>
             </div>
+
+            <button 
+              onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors ${showAdvancedFilters ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' : 'bg-gray-50 text-gray-700 border border-transparent hover:bg-gray-100'}`}
+            >
+              <Settings2 className="w-4 h-4" />
+              Advanced
+            </button>
+
+            <div className="flex items-center bg-gray-50 rounded-xl p-1 border border-gray-100">
+              <button
+                onClick={() => setViewFormat('tabular')}
+                className={`p-1.5 rounded-lg transition-all ${viewFormat === 'tabular' ? 'bg-white shadow-sm text-indigo-600' : 'text-gray-400 hover:text-gray-600'}`}
+              >
+                <List className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setViewFormat('grid')}
+                className={`p-1.5 rounded-lg transition-all ${viewFormat === 'grid' ? 'bg-white shadow-sm text-indigo-600' : 'text-gray-400 hover:text-gray-600'}`}
+              >
+                <LayoutGrid className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Candidates Table */}
-        <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
-          <table className="w-full">
-            <thead className="bg-gray-50/50 border-b border-gray-200">
-              <tr>
-                <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Candidate</th>
-                <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Job Applied For</th>
-                <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Rating</th>
-                <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Stage</th>
-                <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Applied At</th>
-                <th className="text-right px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {filteredApps.map(app => (
-                <tr 
-                  key={app.id} 
-                  onClick={() => openDrawer(app)}
-                  className="hover:bg-indigo-50/30 transition-colors group cursor-pointer"
-                >
-                  <td className="px-6 py-4">
-                    <div>
-                      <p className="font-bold text-gray-900">{app.name}</p>
-                      <p className="text-xs text-gray-500">{app.email}</p>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    {app.job_title ? (
-                      <div>
-                        <p className="text-sm font-semibold text-gray-700">{app.job_title}</p>
-                      </div>
-                    ) : (
-                      <span className="text-xs font-bold text-red-400 bg-red-50 px-2 py-1 rounded">Job Deleted</span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-1">
-                      {renderStars(app.rating, true, (r) => handleRatingChange(app.id, r))}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-tight ${stageConfig[app.stage]?.bg} ${stageConfig[app.stage]?.text}`}>
-                      {stageConfig[app.stage]?.label || app.stage}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-500 font-medium">
-                    {new Date(app.applied_at).toLocaleDateString()}
-                  </td>
-                  <td className="px-6 py-4 text-right" onClick={e => e.stopPropagation()}>
-                    <div className="flex items-center justify-end gap-2">
-                       <button 
-                        onClick={() => {
-                          setAppToDelete(app);
-                          setIsDeleteDialogOpen(true);
-                        }}
-                        className="p-2 hover:bg-red-50 hover:text-red-600 rounded-lg transition-all active:scale-90" 
-                        title="Delete Candidate"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          
-          {filteredApps.length === 0 && (
-            <div className="py-20 text-center text-gray-400 flex flex-col items-center">
-              <Users className="w-12 h-12 mb-4 opacity-20" />
-              <p className="text-lg font-bold">No candidates matches your search</p>
-              <p className="text-sm">Try adjusting your filters or search query</p>
+        {/* Advanced Filters Panel */}
+        {showAdvancedFilters && (
+          <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm animate-in slide-in-from-top-2 duration-200">
+            <h3 className="text-sm font-bold text-gray-900 mb-4">Advanced Filters</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Skill Set</label>
+                <input 
+                  type="text" 
+                  value={advancedFilters.skillSet}
+                  onChange={e => setAdvancedFilters(prev => ({...prev, skillSet: e.target.value}))}
+                  placeholder="e.g. React" 
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none" 
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Total Experience</label>
+                <input 
+                  type="text" 
+                  value={advancedFilters.totalExperience}
+                  onChange={e => setAdvancedFilters(prev => ({...prev, totalExperience: e.target.value}))}
+                  placeholder="e.g. 5 Years" 
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none" 
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Current Location</label>
+                <input 
+                  type="text" 
+                  value={advancedFilters.currentLocation}
+                  onChange={e => setAdvancedFilters(prev => ({...prev, currentLocation: e.target.value}))}
+                  placeholder="e.g. New York" 
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none" 
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Max Expected CTC</label>
+                <input 
+                  type="text" 
+                  value={advancedFilters.expectedCtc}
+                  onChange={e => setAdvancedFilters(prev => ({...prev, expectedCtc: e.target.value}))}
+                  placeholder="e.g. 15 LPA or 120k" 
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none" 
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Max Current CTC</label>
+                <input 
+                  type="text" 
+                  value={advancedFilters.currentCtc}
+                  onChange={e => setAdvancedFilters(prev => ({...prev, currentCtc: e.target.value}))}
+                  placeholder="e.g. 12 LPA or 100k" 
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none" 
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Notice Period</label>
+                <input 
+                  type="text" 
+                  value={advancedFilters.noticePeriod}
+                  onChange={e => setAdvancedFilters(prev => ({...prev, noticePeriod: e.target.value}))}
+                  placeholder="e.g. 30 Days" 
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none" 
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Relevant Experience</label>
+                <input 
+                  type="text" 
+                  value={advancedFilters.relevantExperience}
+                  onChange={e => setAdvancedFilters(prev => ({...prev, relevantExperience: e.target.value}))}
+                  placeholder="e.g. 3 Years" 
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none" 
+                />
+              </div>
             </div>
-          )}
-        </div>
+            <div className="flex justify-end mt-4">
+              <button 
+                onClick={() => setAdvancedFilters({ skillSet: '', totalExperience: '', currentLocation: '', expectedCtc: '', noticePeriod: '', relevantExperience: '', currentCtc: '' })}
+                className="text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors"
+              >
+                Clear Filters
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Candidates View */}
+        {viewFormat === 'tabular' ? (
+          <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
+            <table className="w-full">
+              <thead className="bg-gray-50/50 border-b border-gray-200">
+                <tr>
+                  <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Candidate</th>
+                  <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Job Applied For</th>
+                  <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Rating</th>
+                  <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Stage</th>
+                  <th className="text-left px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Applied At</th>
+                  <th className="text-right px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {filteredApps.map(app => (
+                  <tr 
+                    key={app.id} 
+                    onClick={() => openDrawer(app)}
+                    className="hover:bg-indigo-50/30 transition-colors group cursor-pointer"
+                  >
+                    <td className="px-6 py-4">
+                      <div>
+                        <p className="font-bold text-gray-900">{app.name}</p>
+                        <p className="text-xs text-gray-500">{app.email}</p>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      {app.job_title ? (
+                        <div>
+                          <p className="text-sm font-semibold text-gray-700">{app.job_title}</p>
+                        </div>
+                      ) : (
+                        <span className="text-xs font-bold text-red-400 bg-red-50 px-2 py-1 rounded">Job Deleted</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
+                        {renderStars(app.rating, true, (r) => handleRatingChange(app.id, r))}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-tight ${stageConfig[app.stage]?.bg} ${stageConfig[app.stage]?.text}`}>
+                        {stageConfig[app.stage]?.label || app.stage}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-500 font-medium">
+                      {new Date(app.applied_at).toLocaleDateString()}
+                    </td>
+                    <td className="px-6 py-4 text-right" onClick={e => e.stopPropagation()}>
+                      <div className="flex items-center justify-end gap-2">
+                         <button 
+                          onClick={() => {
+                            setAppToDelete(app);
+                            setIsDeleteDialogOpen(true);
+                          }}
+                          className="p-2 hover:bg-red-50 hover:text-red-600 rounded-lg transition-all active:scale-90" 
+                          title="Delete Candidate"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            
+            {filteredApps.length === 0 && (
+              <div className="py-20 text-center text-gray-400 flex flex-col items-center">
+                <Users className="w-12 h-12 mb-4 opacity-20" />
+                <p className="text-lg font-bold">No candidates matches your search</p>
+                <p className="text-sm">Try adjusting your filters or search query</p>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {filteredApps.map(app => (
+              <div 
+                key={app.id}
+                onClick={() => openDrawer(app)}
+                className="bg-white rounded-2xl border border-gray-200 p-5 hover:border-indigo-300 hover:shadow-md transition-all cursor-pointer group flex flex-col"
+              >
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <h3 className="font-bold text-gray-900 group-hover:text-indigo-600 transition-colors line-clamp-1">{app.name}</h3>
+                    <p className="text-xs text-gray-500 line-clamp-1 mt-0.5">{app.job_title || 'Job Deleted'}</p>
+                  </div>
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setAppToDelete(app);
+                      setIsDeleteDialogOpen(true);
+                    }}
+                    className="p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600 rounded-lg transition-all flex-shrink-0"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between mb-4">
+                  <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-tight ${stageConfig[app.stage]?.bg} ${stageConfig[app.stage]?.text}`}>
+                    {stageConfig[app.stage]?.label || app.stage}
+                  </span>
+                  <div className="flex" onClick={e => e.stopPropagation()}>
+                    {renderStars(app.rating, true, (r) => handleRatingChange(app.id, r))}
+                  </div>
+                </div>
+
+                <div className="mt-auto space-y-3 pt-4 border-t border-gray-50">
+                  {app.skill_set && (
+                    <div>
+                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Skills</p>
+                      <p className="text-sm font-medium text-gray-700 line-clamp-1">{app.skill_set}</p>
+                    </div>
+                  )}
+                  <div className="grid grid-cols-2 gap-2">
+                    {app.expected_ctc && (
+                      <div>
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Expected CTC</p>
+                        <p className="text-sm font-medium text-gray-700 line-clamp-1">{app.expected_ctc}</p>
+                      </div>
+                    )}
+                    {app.total_experience && (
+                      <div>
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Experience</p>
+                        <p className="text-sm font-medium text-gray-700 line-clamp-1">{app.total_experience}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+            
+            {filteredApps.length === 0 && (
+              <div className="col-span-full py-20 bg-white rounded-2xl border border-gray-200 border-dashed text-center text-gray-400 flex flex-col items-center">
+                <LayoutGrid className="w-12 h-12 mb-4 opacity-20" />
+                <p className="text-lg font-bold">No candidates matches your search</p>
+                <p className="text-sm">Try adjusting your filters or search query</p>
+              </div>
+            )}
+          </div>
+        )}
       </main>
 
       {/* Applicant Detail Modal */}
@@ -447,6 +675,88 @@ export default function CandidatesClient({ initialApplications, jobs, serverErro
                     </div>
                   </div>
                 </div>
+
+                {(selectedApp.experience || selectedApp.total_experience || selectedApp.skill_set) && (
+                  <div className="mt-8 space-y-4 pt-8 border-t border-gray-100">
+                    <div className="flex items-center gap-3 px-2">
+                       <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
+                        <Briefcase className="w-4 h-4 text-blue-600" />
+                      </div>
+                      <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Experience Details</h4>
+                    </div>
+                    
+                    {/* Legacy experience format */}
+                    {selectedApp.experience && !selectedApp.total_experience && (
+                      <div className="bg-gray-50/50 rounded-[32px] p-8 border border-gray-100/50">
+                        <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
+                          {selectedApp.experience}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* New structured format */}
+                    {(selectedApp.total_experience || selectedApp.skill_set) && (
+                      <div className="bg-gray-50/50 rounded-[32px] p-8 border border-gray-100/50">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          {selectedApp.skill_set && (
+                            <div>
+                              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Skill Set</p>
+                              <p className="text-gray-900 font-semibold mt-1">{selectedApp.skill_set}</p>
+                            </div>
+                          )}
+                          {selectedApp.total_experience && (
+                            <div>
+                              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Total Experience</p>
+                              <p className="text-gray-900 font-semibold mt-1">{selectedApp.total_experience}</p>
+                            </div>
+                          )}
+                          {selectedApp.relevant_experience && (
+                            <div>
+                              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Relevant Experience</p>
+                              <p className="text-gray-900 font-semibold mt-1">{selectedApp.relevant_experience}</p>
+                            </div>
+                          )}
+                          {selectedApp.current_location && (
+                            <div>
+                              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Current Location</p>
+                              <p className="text-gray-900 font-semibold mt-1">{selectedApp.current_location}</p>
+                            </div>
+                          )}
+                          {selectedApp.current_organization && (
+                            <div>
+                              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Current Organization</p>
+                              <p className="text-gray-900 font-semibold mt-1">{selectedApp.current_organization}</p>
+                            </div>
+                          )}
+                          {selectedApp.current_designation && (
+                            <div>
+                              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Current Designation</p>
+                              <p className="text-gray-900 font-semibold mt-1">{selectedApp.current_designation}</p>
+                            </div>
+                          )}
+                          {selectedApp.current_ctc && (
+                            <div>
+                              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Current CTC</p>
+                              <p className="text-gray-900 font-semibold mt-1">{selectedApp.current_ctc}</p>
+                            </div>
+                          )}
+                          {selectedApp.expected_ctc && (
+                            <div>
+                              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Expected CTC</p>
+                              <p className="text-gray-900 font-semibold mt-1">{selectedApp.expected_ctc}</p>
+                            </div>
+                          )}
+                          {selectedApp.notice_period && (
+                            <div>
+                              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Notice Period</p>
+                              <p className="text-gray-900 font-semibold mt-1">{selectedApp.notice_period}</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {selectedApp.cover_letter && (
                   <div className="mt-8 space-y-4 pt-8 border-t border-gray-100">

@@ -34,6 +34,15 @@ export function ApplicationForm({
     linkedIn: "",
     portfolio: "",
     coverLetter: "",
+    skillSet: "",
+    totalExperience: "",
+    currentCtc: "",
+    expectedCtc: "",
+    noticePeriod: "",
+    currentLocation: "",
+    relevantExperience: "",
+    currentOrganization: "",
+    currentDesignation: "",
   });
 
   /* 
@@ -146,6 +155,15 @@ export function ApplicationForm({
         portfolio: normalizeUrl(formData.portfolio),
         cover_letter: formData.coverLetter || null,
         experience: "",
+        skill_set: formData.skillSet,
+        total_experience: formData.totalExperience,
+        current_ctc: formData.currentCtc,
+        expected_ctc: formData.expectedCtc,
+        notice_period: formData.noticePeriod,
+        current_location: formData.currentLocation,
+        relevant_experience: formData.relevantExperience,
+        current_organization: formData.currentOrganization,
+        current_designation: formData.currentDesignation,
         resume_url: resumeUrl,
       };
 
@@ -359,6 +377,146 @@ export function ApplicationForm({
               required
               className="w-full px-5 py-4 bg-gray-50 border border-transparent rounded-2xl focus:bg-white focus:border-black transition-all outline-none text-lg"
               placeholder="linkedin.com/in/..."
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+
+          <div>
+            <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wider">
+              Skill Set *
+            </label>
+            <input
+              type="text"
+              name="skillSet"
+              value={formData.skillSet}
+              onChange={handleInputChange}
+              required
+              className="w-full px-5 py-4 bg-gray-50 border border-transparent rounded-2xl focus:bg-white focus:border-black transition-all outline-none text-lg"
+              placeholder="React, Node.js, Python..."
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div>
+            <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wider">
+              Total Years of Experience *
+            </label>
+            <input
+              type="text"
+              name="totalExperience"
+              value={formData.totalExperience}
+              onChange={handleInputChange}
+              required
+              className="w-full px-5 py-4 bg-gray-50 border border-transparent rounded-2xl focus:bg-white focus:border-black transition-all outline-none text-lg"
+              placeholder="e.g. 5 Years"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wider">
+              Relevant Experience *
+            </label>
+            <input
+              type="text"
+              name="relevantExperience"
+              value={formData.relevantExperience}
+              onChange={handleInputChange}
+              required
+              className="w-full px-5 py-4 bg-gray-50 border border-transparent rounded-2xl focus:bg-white focus:border-black transition-all outline-none text-lg"
+              placeholder="e.g. 3 Years in React"
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div>
+            <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wider">
+              Current CTC *
+            </label>
+            <input
+              type="text"
+              name="currentCtc"
+              value={formData.currentCtc}
+              onChange={handleInputChange}
+              required
+              className="w-full px-5 py-4 bg-gray-50 border border-transparent rounded-2xl focus:bg-white focus:border-black transition-all outline-none text-lg"
+              placeholder="e.g. $100k"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wider">
+              Expected CTC *
+            </label>
+            <input
+              type="text"
+              name="expectedCtc"
+              value={formData.expectedCtc}
+              onChange={handleInputChange}
+              required
+              className="w-full px-5 py-4 bg-gray-50 border border-transparent rounded-2xl focus:bg-white focus:border-black transition-all outline-none text-lg"
+              placeholder="e.g. $120k"
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div>
+            <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wider">
+              Notice Period *
+            </label>
+            <input
+              type="text"
+              name="noticePeriod"
+              value={formData.noticePeriod}
+              onChange={handleInputChange}
+              required
+              className="w-full px-5 py-4 bg-gray-50 border border-transparent rounded-2xl focus:bg-white focus:border-black transition-all outline-none text-lg"
+              placeholder="e.g. 30 Days"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wider">
+              Current Location *
+            </label>
+            <input
+              type="text"
+              name="currentLocation"
+              value={formData.currentLocation}
+              onChange={handleInputChange}
+              required
+              className="w-full px-5 py-4 bg-gray-50 border border-transparent rounded-2xl focus:bg-white focus:border-black transition-all outline-none text-lg"
+              placeholder="City, Country"
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div>
+            <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wider">
+              Current Organization
+            </label>
+            <input
+              type="text"
+              name="currentOrganization"
+              value={formData.currentOrganization}
+              onChange={handleInputChange}
+              className="w-full px-5 py-4 bg-gray-50 border border-transparent rounded-2xl focus:bg-white focus:border-black transition-all outline-none text-lg"
+              placeholder="Company Name"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wider">
+              Current Designation
+            </label>
+            <input
+              type="text"
+              name="currentDesignation"
+              value={formData.currentDesignation}
+              onChange={handleInputChange}
+              className="w-full px-5 py-4 bg-gray-50 border border-transparent rounded-2xl focus:bg-white focus:border-black transition-all outline-none text-lg"
+              placeholder="e.g. Senior Developer"
             />
           </div>
         </div>

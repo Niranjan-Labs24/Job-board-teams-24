@@ -43,14 +43,22 @@ export async function middleware(request: NextRequest) {
             if (pathname === '/admin') {
                 return NextResponse.next();
             }
-            return NextResponse.redirect(new URL('/admin', request.url));
-        }
-
-        if (pathname === '/admin') {
-            return NextResponse.redirect(new URL('/admin/jobs', request.url));
+            const response = NextResponse.redirect(new URL('/admin', request.url));
+            response.cookies.delete('auth_token');
+            return response;
         }
 
         const role = payload.role as string;
+
+        if (pathname === '/admin') {
+            if (['SUPER_ADMIN', 'ADMIN', 'HR'].includes(role)) {
+                return NextResponse.redirect(new URL('/admin/jobs', request.url));
+            } else {
+                const response = NextResponse.next();
+                response.cookies.delete('auth_token');
+                return response;
+            }
+        }
 
         if (pathname.startsWith('/admin/admin-management')) {
             if (role !== 'SUPER_ADMIN') {
@@ -59,7 +67,9 @@ export async function middleware(request: NextRequest) {
         }
 
         if (!['SUPER_ADMIN', 'ADMIN', 'HR'].includes(role)) {
-            return NextResponse.redirect(new URL('/admin', request.url));
+            const response = NextResponse.redirect(new URL('/admin', request.url));
+            response.cookies.delete('auth_token');
+            return response;
         }
     }
 
