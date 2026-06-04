@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { 
   ArrowLeft, Users, Search, Filter, LayoutGrid, Table as TableIcon,
   Star, Mail, FileText, Eye, MoreVertical, ChevronRight, Loader2,
-  CheckSquare, Square, Clock, Edit, ExternalLink, X, Trash2
+  CheckSquare, Square, Clock, Edit, ExternalLink, X, Trash2, Settings2
 } from 'lucide-react';
 
 interface Job {
@@ -37,6 +37,15 @@ interface Application {
   portfolio?: string;
   resume_url?: string;
   cover_letter?: string;
+  skill_set?: string;
+  total_experience?: string;
+  current_ctc?: string;
+  expected_ctc?: string;
+  notice_period?: string;
+  current_location?: string;
+  relevant_experience?: string;
+  current_organization?: string;
+  current_designation?: string;
 }
 
 const stageConfig: Record<string, { label: string; bg: string; text: string }> = {
@@ -50,6 +59,19 @@ const stageConfig: Record<string, { label: string; bg: string; text: string }> =
   on_hold: { label: 'On Hold', bg: 'bg-gray-100', text: 'text-gray-700' },
 };
 
+const extractNumber = (str?: string) => {
+  if (!str) return null;
+  const numMatch = str.match(/[\d,.]+/);
+  if (!numMatch) return null;
+  let num = parseFloat(numMatch[0].replace(/,/g, ''));
+  const lowerStr = str.toLowerCase();
+  if (lowerStr.includes('k')) num *= 1000;
+  if (lowerStr.includes('lpa') || lowerStr.includes('lakh')) num *= 100000;
+  if (lowerStr.includes('m') || lowerStr.includes('million')) num *= 1000000;
+  if (lowerStr.includes('cr') || lowerStr.includes('crore')) num *= 10000000;
+  return num;
+};
+
 const stages = ['new', 'screening', 'interview_scheduled', 'interview_complete', 'offer_pending', 'hired'];
 
 export default function JobApplicationsPage() {
@@ -61,6 +83,16 @@ export default function JobApplicationsPage() {
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'table' | 'kanban'>('kanban');
   const [searchQuery, setSearchQuery] = useState('');
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [advancedFilters, setAdvancedFilters] = useState({
+    skillSet: '',
+    totalExperience: '',
+    currentLocation: '',
+    expectedCtc: '',
+    currentCtc: '',
+    noticePeriod: '',
+    relevantExperience: ''
+  });
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const [selectedApp, setSelectedApp] = useState<Application | null>(null);
@@ -178,10 +210,26 @@ export default function JobApplicationsPage() {
     });
   };
 
-  const filteredApps = applications.filter(app =>
-    app.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    app.email.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredApps = applications.filter(app => {
+    const matchesSearch = app.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          app.email.toLowerCase().includes(searchQuery.toLowerCase());
+                          
+    const matchesSkillSet = !advancedFilters.skillSet || (app.skill_set?.toLowerCase() || '').includes(advancedFilters.skillSet.toLowerCase());
+    const matchesTotalExperience = !advancedFilters.totalExperience || (app.total_experience?.toLowerCase() || '').includes(advancedFilters.totalExperience.toLowerCase());
+    const matchesCurrentLocation = !advancedFilters.currentLocation || (app.current_location?.toLowerCase() || '').includes(advancedFilters.currentLocation.toLowerCase());
+    const matchesNoticePeriod = !advancedFilters.noticePeriod || (app.notice_period?.toLowerCase() || '').includes(advancedFilters.noticePeriod.toLowerCase());
+    const matchesRelevantExperience = !advancedFilters.relevantExperience || (app.relevant_experience?.toLowerCase() || '').includes(advancedFilters.relevantExperience.toLowerCase());
+    
+    const filterExpCtc = extractNumber(advancedFilters.expectedCtc);
+    const appExpCtc = extractNumber(app.expected_ctc);
+    const matchesExpectedCtc = filterExpCtc === null || (appExpCtc !== null && appExpCtc <= filterExpCtc);
+
+    const filterCurCtc = extractNumber(advancedFilters.currentCtc);
+    const appCurCtc = extractNumber(app.current_ctc);
+    const matchesCurrentCtc = filterCurCtc === null || (appCurCtc !== null && appCurCtc <= filterCurCtc);
+
+    return matchesSearch && matchesSkillSet && matchesTotalExperience && matchesCurrentLocation && matchesExpectedCtc && matchesNoticePeriod && matchesRelevantExperience && matchesCurrentCtc;
+  });
 
   const getAppsByStage = (stage: string) => filteredApps.filter(app => app.stage === stage);
 
@@ -326,7 +374,101 @@ export default function JobApplicationsPage() {
               data-testid="search-candidates-input"
             />
           </div>
+          <button 
+            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${showAdvancedFilters ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'}`}
+          >
+            <Settings2 className="w-4 h-4" />
+            Advanced
+          </button>
         </div>
+        
+        {/* Advanced Filters Panel */}
+        {showAdvancedFilters && (
+          <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm animate-in slide-in-from-top-2 duration-200 mt-4">
+            <h3 className="text-sm font-bold text-gray-900 mb-4">Advanced Filters</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Skill Set</label>
+                <input 
+                  type="text" 
+                  value={advancedFilters.skillSet}
+                  onChange={e => setAdvancedFilters(prev => ({...prev, skillSet: e.target.value}))}
+                  placeholder="e.g. React" 
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none" 
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Total Experience</label>
+                <input 
+                  type="text" 
+                  value={advancedFilters.totalExperience}
+                  onChange={e => setAdvancedFilters(prev => ({...prev, totalExperience: e.target.value}))}
+                  placeholder="e.g. 5 Years" 
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none" 
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Current Location</label>
+                <input 
+                  type="text" 
+                  value={advancedFilters.currentLocation}
+                  onChange={e => setAdvancedFilters(prev => ({...prev, currentLocation: e.target.value}))}
+                  placeholder="e.g. New York" 
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none" 
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Max Expected CTC</label>
+                <input 
+                  type="text" 
+                  value={advancedFilters.expectedCtc}
+                  onChange={e => setAdvancedFilters(prev => ({...prev, expectedCtc: e.target.value}))}
+                  placeholder="e.g. 15 LPA or 120k" 
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none" 
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Max Current CTC</label>
+                <input 
+                  type="text" 
+                  value={advancedFilters.currentCtc}
+                  onChange={e => setAdvancedFilters(prev => ({...prev, currentCtc: e.target.value}))}
+                  placeholder="e.g. 12 LPA or 100k" 
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none" 
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Notice Period</label>
+                <input 
+                  type="text" 
+                  value={advancedFilters.noticePeriod}
+                  onChange={e => setAdvancedFilters(prev => ({...prev, noticePeriod: e.target.value}))}
+                  placeholder="e.g. 30 Days" 
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none" 
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Relevant Experience</label>
+                <input 
+                  type="text" 
+                  value={advancedFilters.relevantExperience}
+                  onChange={e => setAdvancedFilters(prev => ({...prev, relevantExperience: e.target.value}))}
+                  placeholder="e.g. 3 Years" 
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none" 
+                />
+              </div>
+            </div>
+            <div className="flex justify-end mt-4">
+              <button 
+                onClick={() => setAdvancedFilters({ skillSet: '', totalExperience: '', currentLocation: '', expectedCtc: '', noticePeriod: '', relevantExperience: '', currentCtc: '' })}
+                className="text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors"
+              >
+                Clear Filters
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Content */}
@@ -398,10 +540,35 @@ export default function JobApplicationsPage() {
                           {renderStars(app.rating)}
                         </div>
                         
-                        <div className="flex items-center gap-2 text-[10px] text-gray-400 font-medium">
+                        <div className="flex items-center gap-2 text-[10px] text-gray-400 font-medium mb-3">
                           <Clock className="w-2.5 h-2.5" />
                           <span>Applied {new Date(app.applied_at).toLocaleDateString()}</span>
                         </div>
+                        
+                        {(app.skill_set || app.expected_ctc || app.total_experience) && (
+                          <div className="space-y-2 mt-2 pt-2 border-t border-gray-50">
+                            {app.skill_set && (
+                              <div>
+                                <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wide">Skills</p>
+                                <p className="text-xs font-medium text-gray-700 line-clamp-1">{app.skill_set}</p>
+                              </div>
+                            )}
+                            <div className="flex gap-4">
+                              {app.expected_ctc && (
+                                <div>
+                                  <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wide">Exp. CTC</p>
+                                  <p className="text-xs font-medium text-gray-700 line-clamp-1">{app.expected_ctc}</p>
+                                </div>
+                              )}
+                              {app.total_experience && (
+                                <div>
+                                  <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wide">Exp</p>
+                                  <p className="text-xs font-medium text-gray-700 line-clamp-1">{app.total_experience}</p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
                         
                         {(app.linkedin || app.resume_url) && (
                           <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100">
